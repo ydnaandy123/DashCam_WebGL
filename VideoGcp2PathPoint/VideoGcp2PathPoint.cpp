@@ -31,13 +31,13 @@ int main(void)
     fclose(fp_label);
     fclose(fp_gcp);
     if(pathNum>0){
-        fp_path = fopen("../src/VideoSource/jsPahtPoint/pathPoint.js","w");
-        fprintf(fp_path,"pathPoint={");
+        fp_path = fopen("../src/VideoSource/jsPathPoint/pathPoint.js","w");
+        fprintf(fp_path,"pathPoint=[");
         fprintf(fp_path,"%s,%s",diction[1],diction[2]);
         for(i=1;i<pathNum;i++){
             fprintf(fp_path,",%s,%s",diction[DATANUM*i+1],diction[DATANUM*i+2]);
         }
-        fprintf(fp_path,"};");
+        fprintf(fp_path,"];");
     }
     fclose(fp_path);
     return 0;
