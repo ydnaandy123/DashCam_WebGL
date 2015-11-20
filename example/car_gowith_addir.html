@@ -71,7 +71,7 @@ var toycar;
 // state variable of toycar
 var pos = new THREE.Vector3(0,0,0);
 var angle = 0;
-var speed = 5;
+var speed = 10;
 
 init();
 animate();
@@ -97,13 +97,6 @@ function init()
 	carLoader = new THREE.BinaryLoader();
 	carLoader.load( CARS[ "veyron" ].url, function( geometry ) { createScene( geometry, "veyron" ) } );
 	for( var c in CARS ) initCarButton( c );
-	for( var c in CARS ){
-	if ( ! CARS[ c ].object ){
-		//console.log(CARS[ c ] );
-	}	
-	}
-	console.log(CARS);
-	console.log(carName);
 	//console.log(CARS[ car ].object.position );
 	
 	// add control here (after the camera is defined)
@@ -121,24 +114,30 @@ function init()
 	
 	
 }
-
+var start=0,nangle;
 function animate()
 {
 	var dt = clock.getDelta();	
-	var dir = new THREE.Vector3(1,0,0);
-
+	var dir ;
+	var p0 = [0,0], p1 = [0,50], p2 = [-50,50];
 	if(CARS[carName]!=undefined){
-		if(CARS[carName].object.position.x >= 50){
-			dir = new THREE.Vector3(0,0,1);
+		dir1 = new THREE.Vector3(p1[0]-p0[0],0,p1[1]-p0[1]);
+		dir = dir1;
+		if(CARS[carName].object.position.z >= 50){	
+			dir2 = new THREE.Vector3(p2[0]-p1[0],0,p2[1]-p1[1])
+			dir = dir2;
 		}	
+		
+		dir.normalize();
 		dir.multiplyScalar (dt*speed);	//dir *= dt*speed;
-		dir.applyAxisAngle (new THREE.Vector3(0,1,0), angle);
 		pos.add (dir); 	//pos = pos + dir;	
 		CARS[carName].object.position.set(pos.x, pos.y, pos.z);		
-		CARS[carName].object.rotation.y = (angle+Math.PI/2);
+		CARS[carName].object.rotation.y = (angle);
+		//console.log(CARS[carName].object.position);
+		//console.log(dir.angleTo(dir2));
 	}
 	//console.log(carName);
-	if (toycar != undefined) { 
+	/*if (toycar != undefined) { 
 		toycar.scale.set (0.2,0.2,0.2);
 		toycar.position.set (pos.x, pos.y, pos.z);
 		toycar.rotation.y = (angle+Math.PI/2);
@@ -151,7 +150,7 @@ function animate()
 		camera.position.y = cameraOffset.y;
 		camera.position.z = cameraOffset.z;
 		camera.lookAt( toycar.position );
-	}
+	}*/
 	
 	requestAnimationFrame ( animate );  
 	update();

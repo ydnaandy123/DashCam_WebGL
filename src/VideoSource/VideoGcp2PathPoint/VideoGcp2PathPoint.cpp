@@ -7,8 +7,8 @@ bool matchError=0;
 int main(void)
 {
     int i;
-    fp_label = fopen("../src/VideoSource/label/label_0M3Uuqw0Gn8_checked.txt","r");
-    fp_gcp = fopen("../src/VideoSource/GT_gcp/for_vsfm_GT_0M3Uuqw0Gn8.gcp","r");
+    fp_label = fopen("../label/label_0M3Uuqw0Gn8_checked.txt","r");
+    fp_gcp = fopen("../GT_gcp/for_vsfm_GT_0M3Uuqw0Gn8.gcp","r");
     if(fp_label==NULL || fp_gcp==NULL){
         printf("file is NULL.");
         return 0;
@@ -31,7 +31,7 @@ int main(void)
     fclose(fp_label);
     fclose(fp_gcp);
     if(pathNum>0){
-        fp_path = fopen("../src/VideoSource/jsPathPoint/pathPoint.js","w");
+        fp_path = fopen("../pathPoint.js","w");
         fprintf(fp_path,"pathPoint=[");
         fprintf(fp_path,"%s,%s",diction[1],diction[2]);
         for(i=1;i<pathNum;i++){
