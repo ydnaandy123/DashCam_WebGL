@@ -124,8 +124,7 @@ function animate()
 		dir1 = new THREE.Vector3(p1[0]-p0[0],0,p1[1]-p0[1]);
 		dir = dir1;
 		if(CARS[carName].object.position.z >= 50){	
-			dir2 = new THREE.Vector3(p2[0]-p1[0],0,p2[1]-p1[1])
-			dir = dir2;
+			dir = new THREE.Vector3(p2[0]-p1[0],0,p2[1]-p1[1]);
 		}	
 		
 		dir.normalize();

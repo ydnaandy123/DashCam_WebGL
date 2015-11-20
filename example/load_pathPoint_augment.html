@@ -1,0 +1,256 @@
+<!doctype html>
+<html lang="en">
+	<head>
+		<title>three.js webgl - cloth simulation</title>
+		<meta charset="utf-8">
+		<meta name="viewport" content="width=device-width, user-scalable=no, minimum-scale=1.0, maximum-scale=1.0">
+		<style>
+			body {
+				font-family: Monospace;
+				background-color: #000;
+				color: #000;
+				margin: 0px;
+				overflow: hidden;
+			}
+
+			#info {
+				position: absolute;
+				padding: 10px;
+				width: 100%;
+				text-align: center;
+			}
+
+			a {
+				text-decoration: underline;
+				cursor: pointer;
+			}
+
+			#stats { position: absolute; top:0; left: 0 }
+			#stats #fps { background: transparent !important }
+			#stats #fps #fpsText { color: #aaa !important }
+			#stats #fps #fpsGraph { display: none }
+		</style>
+	</head>
+
+	<body>
+		<div id="info">Simple Cloth Simulation<br/>
+			Verlet integration with Constrains relaxation<br/>
+			Toggle: <a onclick="rotate = !rotate;">Camera</a> |
+			<a onclick="wind = !wind;">Wind</a> |
+			<a onclick="sphere.visible = !sphere.visible;">Ball</a> |
+			<a onclick="togglePins();">Pins</a>
+		</div>
+
+		<script>libsrc =  "../libs/mrdoob-three.js-5c6ec4a/examples"</script>
+		<script src="../libs/mrdoob-three.js-5c6ec4a/examples/../build/three.min.js"></script>
+
+		<script src="../libs/mrdoob-three.js-5c6ec4a/examples/js/Detector.js"></script>
+		<script src="../libs/mrdoob-three.js-5c6ec4a/examples/js/libs/stats.min.js"></script>
+
+		<script src="../src/VideoSource/pathPoint.js"></script>
+		<script src="js/pathPoint_augment.js"></script>
+		
+		<script type="x-shader/x-fragment" id="fragmentShaderDepth">
+
+			uniform sampler2D texture;
+			varying vec2 vUV;
+
+			vec4 pack_depth( const in float depth ) {
+
+				const vec4 bit_shift = vec4( 256.0 * 256.0 * 256.0, 256.0 * 256.0, 256.0, 1.0 );
+				const vec4 bit_mask  = vec4( 0.0, 1.0 / 256.0, 1.0 / 256.0, 1.0 / 256.0 );
+				vec4 res = fract( depth * bit_shift );
+				res -= res.xxyz * bit_mask;
+				return res;
+
+			}
+
+			void main() {
+
+				vec4 pixel = texture2D( texture, vUV );
+
+				if ( pixel.a < 0.5 ) discard;
+
+				gl_FragData[ 0 ] = pack_depth( gl_FragCoord.z );
+
+			}
+		</script>
+
+		<script type="x-shader/x-vertex" id="vertexShaderDepth">
+
+			varying vec2 vUV;
+
+			void main() {
+
+				vUV = 0.75 * uv;
+
+				vec4 mvPosition = modelViewMatrix * vec4( position, 1.0 );
+
+				gl_Position = projectionMatrix * mvPosition;
+
+			}
+
+		</script>
+
+		<script>
+
+
+			if ( ! Detector.webgl ) Detector.addGetWebGLMessage();
+
+			var container, stats;
+			var camera, scene, renderer;
+
+			var sphere;
+			var object;
+
+			var rotate = false;
+
+			init();
+			animate();
+
+			function init() {
+
+				container = document.createElement( 'div' );
+				document.body.appendChild( container );
+
+				// scene
+
+				scene = new THREE.Scene();
+				scene.fog = new THREE.Fog( 0xcce0ff, 500, 10000 );
+
+				// camera
+
+				camera = new THREE.PerspectiveCamera( 30, window.innerWidth / window.innerHeight, 1, 10000 );
+				camera.position.y = 550;
+				camera.position.z = 1500;
+				scene.add( camera );
+
+				// lights
+
+				var light, materials;
+
+				scene.add( new THREE.AmbientLight( 0x666666 ) );
+
+				light = new THREE.DirectionalLight( 0xdfebff, 1.75 );
+				light.position.set( 50, 200, 100 );
+				light.position.multiplyScalar( 1.3 );
+
+				light.castShadow = true;
+				// light.shadowCameraVisible = true;	
+
+				var directionalLight = new THREE.DirectionalLight( 0xffeedd, 1.5 );
+				directionalLight.position.set( 0, -70, 100 ).normalize();
+				scene.add( directionalLight );
+
+				light.shadowMapWidth = 1024;
+				light.shadowMapHeight = 1024;
+
+				var d = 300;
+
+				light.shadowCameraLeft = -d;
+				light.shadowCameraRight = d;
+				light.shadowCameraTop = d;
+				light.shadowCameraBottom = -d;
+
+				light.shadowCameraFar = 1000;
+				light.shadowDarkness = 0.5;
+
+
+				// ground
+
+				var groundTexture = THREE.ImageUtils.loadTexture( "../src/img/grasslight-big.jpg" );
+				//groundTexture.wrapS = groundTexture.wrapT = THREE.RepeatWrapping;
+				//groundTexture.repeat.set( 1, 1 );
+				//groundTexture.anisotropy = 16;
+
+				var groundMaterial = new THREE.MeshPhongMaterial( { color: 0xffffff, specular: 0x111111, map: groundTexture } );
+
+				var mesh = new THREE.Mesh( new THREE.PlaneBufferGeometry( 20000, 20000 ), groundMaterial );
+				mesh.position.y = 0;
+				mesh.rotation.x = - Math.PI / 2;
+				mesh.receiveShadow = true;
+				scene.add( mesh );
+
+				//add pathPoint
+				var material_spheres = new THREE.MeshLambertMaterial( { color: 0xdddddd } ),
+					sphere = new THREE.SphereGeometry( 15, 16, 8 );				
+				for(var i=0;i<pathPoint.length/2;i++){
+
+					var mesh = new THREE.Mesh( sphere, material_spheres );
+					mesh.position.z = pathPointCen[i*2];
+					mesh.position.x = pathPointCen[i*2+1];
+					mesh.position.y = 15;
+					//console.log(mesh.position.z,mesh.position.x);
+					mesh.receiveShadow = true;
+					mesh.castShadow = true;
+					scene.add( mesh );					
+				}			
+				//
+
+				renderer = new THREE.WebGLRenderer( { antialias: true } );
+				renderer.setPixelRatio( window.devicePixelRatio );
+				renderer.setSize( window.innerWidth, window.innerHeight );
+				renderer.setClearColor( scene.fog.color );
+
+				container.appendChild( renderer.domElement );
+
+				renderer.gammaInput = true;
+				renderer.gammaOutput = true;
+
+				renderer.shadowMap.enabled = true;
+
+				//
+
+				stats = new Stats();
+				container.appendChild( stats.domElement );
+
+				//
+
+				window.addEventListener( 'resize', onWindowResize, false );
+
+				sphere.visible = !true
+
+			}
+
+			//
+
+			function onWindowResize() {
+
+				camera.aspect = window.innerWidth / window.innerHeight;
+				camera.updateProjectionMatrix();
+
+				renderer.setSize( window.innerWidth, window.innerHeight );
+
+			}
+
+			//
+
+			function animate() {
+
+				requestAnimationFrame( animate );
+
+				render();
+				stats.update();
+
+			}
+
+			function render() {
+
+				var timer = Date.now() * 0.0002;
+
+				if ( rotate ) {
+
+					camera.position.x = Math.cos( timer ) * 1500;
+					camera.position.z = Math.sin( timer ) * 1500;
+
+				}
+
+				camera.lookAt( scene.position );
+
+				renderer.render( scene, camera );
+
+			}
+
+		</script>
+	</body>
+</html>
