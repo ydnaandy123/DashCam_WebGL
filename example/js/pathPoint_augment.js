@@ -2,7 +2,7 @@ var pathPointScalar = 1000000;
 var pathPointCen=[], pathVector=[], pathAngle=[];
 console.log(pathPoint);
 for(var i=0;i<pathPoint.length/2;i++){
-	pathPointCen[i*2] = (pathPoint[i*2] - pathPoint[0]) * pathPointScalar;
+	pathPointCen[i*2] = (pathPoint[i*2] - pathPoint[0]) * -pathPointScalar;
 	pathPointCen[i*2+1] = (pathPoint[i*2+1] - pathPoint[1]) * pathPointScalar;
 }
 console.log(pathPointCen);
@@ -15,7 +15,7 @@ console.log(pathVector);
 for(var i=0; i<pathVector.length; i++){
 	var deg;
 	deg = pathVector[i].angleTo(new THREE.Vector3(0,0,1));
-	if(pathVector[i].x>0)deg=-deg;
+	if(pathVector[i].x<0)deg=-deg;
 	pathAngle.push(deg);
 }
 console.log(pathAngle);

@@ -169,8 +169,20 @@
 				mesh.position.y = 0;
 				mesh.rotation.x = - Math.PI / 2;
 				mesh.receiveShadow = true;
-				scene.add( mesh );
+				//scene.add( mesh );
 
+				// load map
+				loader = new THREE.JSONLoader();
+				loader.load('../src/map/js/map.js', function (geometry, materials) {
+					var mesh, material;
+					material = new THREE.MeshFaceMaterial(materials);			
+					mesh = new THREE.Mesh(geometry, material);
+					mesh.scale.set(11, 10, 10);
+					mesh.receiveShadow = true;
+					mesh.castShadow = true;
+					//for match scale
+					scene.add(mesh);
+				});		
 				//add pathPoint
 				var material_spheres = new THREE.MeshLambertMaterial( { color: 0xdddddd } ),
 					sphere = new THREE.SphereGeometry( 15, 16, 8 );				
