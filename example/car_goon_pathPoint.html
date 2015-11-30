@@ -73,10 +73,11 @@ var toycar;
 // state variable of toycar
 var pos = new THREE.Vector3(0,0,0);
 var angle = 0;
-var speed = 50, state=-1;
-
+var speed = 1, state=-1;
+var time =0;
 init();
 animate();
+				var	pathPointAugment = new PathPointAugment(pathPoint,1000000);
 
 function init()
 {
@@ -90,7 +91,7 @@ function init()
 	scene = new THREE.Scene();
 
 	camera = new THREE.PerspectiveCamera (45, width/height, 1, 10000);
-	camera.position.y = 860;
+	camera.position.y = 2860;
 	camera.position.z = 800;
 	camera.lookAt (new THREE.Vector3(0,0,0));
 
@@ -102,19 +103,19 @@ function init()
 	//console.log(CARS[ car ].object.position );
 
 	//load pathPoint
-	var material_spheres = new THREE.MeshLambertMaterial( { color: 0xdddddd } ),
-		sphere = new THREE.SphereGeometry( 15, 16, 8 );				
-	for(var i=0;i<pathPoint.length/2;i++){
-
-		var mesh = new THREE.Mesh( sphere, material_spheres );
-		mesh.position.z = pathPointCen[i*2];
-		mesh.position.x = pathPointCen[i*2+1];
-		mesh.position.y = 15;
-		//console.log(mesh.position.z,mesh.position.x);
-		mesh.receiveShadow = true;
-		mesh.castShadow = true;
-		scene.add( mesh );					
-	}		
+				//add pathPoint
+				pathPointAugment = new PathPointAugment(pathPoint,1000000);
+				var material_spheres = new THREE.MeshLambertMaterial( { color: 0xdddddd } ),
+					sphere = new THREE.SphereGeometry( 15, 16, 8 );		
+				for(var i=0;i<pathPointAugment.pathPointCen.length/2;i++){
+					var mesh = new THREE.Mesh( sphere, material_spheres );
+					mesh.position.z = pathPointAugment.pathPointCen[i*2];
+					mesh.position.x = pathPointAugment.pathPointCen[i*2+1];
+					mesh.position.y = 15;
+					mesh.receiveShadow = true;
+					mesh.castShadow = true;
+					scene.add( mesh );					
+				}		
 	// add control here (after the camera is defined)
 	//controls = new THREE.OrbitControls (camera, render.domElement);
 	var gridXZ = new THREE.GridHelper(1000, 50);
@@ -149,14 +150,19 @@ function animate()
 	var dir ;
 	var p0 = [0,0], p1 = [0,50], p2 = [-50,50];
 	if(CARS[carName]!=undefined){
-		dir = pathVector[state];
-		angle = pathAngle[state];
-		dir.normalize();
+		dir = new THREE.Vector3(pathPointAugment.pathVector[state].x,pathPointAugment.pathVector[state].y,pathPointAugment.pathVector[state].z);
+		angle = pathPointAugment.pathAngle[state];
+		//dir.normalize();
 		dir.multiplyScalar (dt*speed);	//dir *= dt*speed;
+		//console.log(dir);
 		pos.add (dir); 	//pos = pos + dir;	
 		CARS[carName].object.position.set(pos.x, pos.y, pos.z);		
 		CARS[carName].object.rotation.y = (angle);
 	}
+          time += 0.005;
+
+         // camera.position.x = Math.sin(time) * 400;
+          //camera.position.z = Math.cos(time) * 400;	
 	
 	requestAnimationFrame ( animate );  
 	update();
@@ -166,11 +172,11 @@ function animate()
 function countSecond()
 {	console.log(state);
 	state = state+1;
-	if(state>pathVector.length-1){
+	if(state>pathPointAugment.pathVector.length-1){
 		pos.set(0,0,0);
 		state=0;
 	}
-	setTimeout("countSecond( )", 1000);
+	setTimeout("countSecond( )", 1000/speed);
 }
 function myclamp(x,lo,hi)
 {

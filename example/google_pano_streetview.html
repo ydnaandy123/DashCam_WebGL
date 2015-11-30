@@ -99,9 +99,11 @@
 
 			var container, stats;
 			var camera, scene, renderer;
-
+			var ORIGIN = new THREE.Vector3();
 			var sphere;
 			var object;
+			
+			var ground;
 
 			var rotate = false;
 
@@ -121,7 +123,7 @@
 				// camera
 
 				camera = new THREE.PerspectiveCamera( 30, window.innerWidth / window.innerHeight, 1, 10000 );
-				camera.position.y = 550;
+				camera.position.y = 80;
 				camera.position.z = 1500;
 				scene.add( camera );
 
@@ -165,11 +167,13 @@
 
 				var groundMaterial = new THREE.MeshPhongMaterial( { color: 0xffffff, specular: 0x111111, map: groundTexture } );
 
-				var mesh = new THREE.Mesh( new THREE.PlaneBufferGeometry( 20000, 20000 ), groundMaterial );
-				mesh.position.y = 0;
-				mesh.rotation.x = - Math.PI / 2;
-				mesh.receiveShadow = true;
-				scene.add( mesh );
+				var ground = new THREE.Mesh( new THREE.PlaneBufferGeometry( 20000, 20000 ), groundMaterial );
+				ground.position.y = 0;
+				ground.rotation.x = - Math.PI / 2;
+				ground.receiveShadow = true;
+				scene.add( ground );
+				ground.visible = !true;
+				console.log(ground);
 
 				// load map
 				/*loader = new THREE.JSONLoader();
@@ -194,10 +198,61 @@
 					mesh.position.y = 15;
 					mesh.receiveShadow = true;
 					mesh.castShadow = true;
-					scene.add( mesh );					
+					//scene.add( mesh );					
 				}			
-				//
+				//canary
+        var urls = [
+              '../src/img/p1/pos-x.png',
+              '../src/img/p1/neg-x.png',
+              '../src/img/p1/pos-y.png',
+              '../src/img/p1/neg-y.png',
+              '../src/img/p1/pos-z.png',
+              '../src/img/p1/neg-z.png'
+            ];
+        // wrap it up into the object that we need
+        var cubemap = THREE.ImageUtils.loadTextureCube(urls);
+        // set the format, likely RGB
+        // unless you've gone crazy
+        cubemap.format = THREE.RGBFormat;	
+		
+				var shader = THREE.ShaderLib[ "cube" ];
+				shader.uniforms[ "tCube" ].value = cubemap;
 
+				var material = new THREE.ShaderMaterial( {
+
+					fragmentShader: shader.fragmentShader,
+					vertexShader: shader.vertexShader,
+					uniforms: shader.uniforms,
+					depthWrite: false,
+					side: THREE.BackSide
+
+				} )
+				,
+
+				mesh = new THREE.Mesh( new THREE.BoxGeometry( 3000, 3000, 3000 ), material );
+				scene.add( mesh );
+
+       // var skybox = new THREE.Mesh( new THREE.CubeGeometry( 4000, 4000, 4000 ), material );
+		mesh.position.y = 500;
+        var ambient = new THREE.AmbientLight( 0xffffff );
+        scene.add(ambient);
+
+        var pointLight = new THREE.PointLight( 0xffffff, 2 );
+        scene.add( pointLight );
+
+        var reflectionMaterial = new THREE.MeshBasicMaterial({
+          color: 0xcccccc,
+          envMap: cubemap
+        });
+
+        var torus = new THREE.Mesh(
+          new THREE.TorusKnotGeometry(60,20,100),
+          reflectionMaterial
+        );
+
+        //scene.add(torus);
+        scene.add(camera);
+       // scene.add(skybox);
 				renderer = new THREE.WebGLRenderer( { antialias: true } );
 				renderer.setPixelRatio( window.devicePixelRatio );
 				renderer.setSize( window.innerWidth, window.innerHeight );
@@ -255,10 +310,12 @@
 					camera.position.z = Math.sin( timer ) * 1500;
 
 				}
+				
 
 				camera.lookAt( scene.position );
-
+				//camera.lookAt( ORIGIN );
 				renderer.render( scene, camera );
+				
 
 			}
 

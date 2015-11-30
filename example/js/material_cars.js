@@ -1,71 +1,138 @@
-var carName, carSize = 0.5, carName;
-CARS = {
+/***How to use***/
+/***
+1. load mrdoob-three.js-5c6ec4a/examples/js/loaders/BinaryLoader.js
+2. load material_cars.js
+3. add button and css. EX:
+	<style>
+		canvas {
+			position: fixed;
+			top: 0;
+			left: 0;
+		}
+		body {
+			background:#000;
+			color:#fff;
+			padding:0;
+			margin:0;
+			overflow:hidden;
+			font-family:georgia;
+			text-align:center;
+		}
+		h1 { }
+		a { color:skyblue; text-decoration:none }
+		canvas { pointer-events:none; z-index:10; position:relative; }
 
-				"veyron": 	{
+		#d { position:absolute; width: 100%; text-align:center; margin:1em 0 -4.5em 0; z-index:1000; }
 
-					name:	"Bugatti Veyron",
-					url: 	"../libs/mrdoob-three.js-5c6ec4a/examples/obj/veyron/VeyronNoUv_bin.js",
-					author: '<a href="http://artist-3d.com/free_3d_models/dnm/model_disp.php?uid=1129" target="_blank">Troyano</a>',
-					init_rotation: [ 0, 0, 0 ],
-					scale: 5.5,
-					init_material: 4,
-					body_materials: [ 2 ],
+		.bwrap { margin:0.5em 0 0 0 }
+		button { font-family:georgia; border:0; background:#000; color:#fff; padding:0.2em 0.5em; cursor:pointer; border-radius:3px; }
+		button:hover { background:#333 }
+		#buttons_cars button { color:#fa0 }
 
-					object: null,
-					buttons: null,
-					materials: null
+		#car_info { text-align:center; }
+		#car_name { font-size:1em }
+		#car_author { font-size:1em }
 
-				},
+		#oldie { background:rgb(50,0,0) !important; color:#fff !important; margin-top:7em!important }
+	</style>
+--------------------------------------------------------------------------------------------------------
+	<div id="d">
+		<div id="info">
+			<a href="http://threejs.org" target="_blank">three.js</a> webgl demo :
+			texture by <a href="http://www.humus.name/index.php?page=Textures" target="_blank">Humus</a> :
+			<span id="car_info">
+				<span id="car_name">Bugatti Veyron model</span>
+				by <span id="car_author"><a href="http://artist-3d.com/free_3d_models/dnm/model_disp.php?uid=1129" target="_blank">Troyano</a></span>
+			</span>
 
-				"gallardo": {
+		</div>
 
-					name: 	"Lamborghini Gallardo",
-					url:	"../libs/mrdoob-three.js-5c6ec4a/examples/obj/gallardo/GallardoNoUv_bin.js",
-					author: '<a href="http://artist-3d.com/free_3d_models/dnm/model_disp.php?uid=1711" target="_blank">machman_3d</a>',
-					init_rotation: [ 0, 0, 0 ],
-					scale: 3.7,
-					init_material: 9,
-					body_materials: [ 3 ],
+		<div id="buttons_cars" class="bwrap">
+			<button id="veyron">Bugatti Veyron</button>
+			<button id="gallardo">Lamborghini Gallardo</button>
+			<button id="f50">Ferrari F50</button>
+			<button id="camaro">Chevrolet Camaro</button>
+		</div>
 
-					object:	null,
-					buttons: null,
-					materials: null
+		<div id="buttons_materials" class="bwrap"></div>
+	</div>
+4. initial CARS. EX:
+	//load cars
+	carSize = 0.1;
+	carLoader = new THREE.BinaryLoader();
+	carLoader.load( CARS[ "veyron" ].url, function( geometry ) { createScene( geometry, "veyron" ) } );
+	for( var c in CARS ) initCarButton( c );
+***/
 
-				},
 
-				"f50": {
+var carName, carSize = 0.5, CARS;
+var CARS = {
 
-					name: 	"Ferrari F50",
-					url:	"../libs/mrdoob-three.js-5c6ec4a/examples/obj/f50/F50NoUv_bin.js",
-					author: '<a href="http://artist-3d.com/free_3d_models/dnm/model_disp.php?uid=1687" target="_blank">daniel sathya</a>',
-					init_rotation: [ 0, 0, 0 ],
-					scale: 0.175,
-					init_material: 2,
-					body_materials: [ 3, 6, 7, 8, 9, 10, 23, 24 ],
+	"veyron": 	{
 
-					object:	null,
-					buttons: null,
-					materials: null
+		name:	"Bugatti Veyron",
+		url: 	"../libs/mrdoob-three.js-5c6ec4a/examples/obj/veyron/VeyronNoUv_bin.js",
+		author: '<a href="http://artist-3d.com/free_3d_models/dnm/model_disp.php?uid=1129" target="_blank">Troyano</a>',
+		init_rotation: [ 0, 0, 0 ],
+		scale: 5.5,
+		init_material: 4,
+		body_materials: [ 2 ],
 
-				},
+		object: null,
+		buttons: null,
+		materials: null
 
-				"camaro": {
+	},
 
-					name: 	"Chevrolet Camaro",
-					url:	"../libs/mrdoob-three.js-5c6ec4a/examples/obj/camaro/CamaroNoUv_bin.js",
-					author: '<a href="http://www.turbosquid.com/3d-models/blender-camaro/411348" target="_blank">dskfnwn</a>',
-					init_rotation: [ 0.0, 0.0, 0.0 /*0, 1, 0*/ ],
-					scale: 75,
-					init_material: 0,
-					body_materials: [ 0 ],
+	"gallardo": {
 
-					object:	null,
-					buttons: null,
-					materials: null
+		name: 	"Lamborghini Gallardo",
+		url:	"../libs/mrdoob-three.js-5c6ec4a/examples/obj/gallardo/GallardoNoUv_bin.js",
+		author: '<a href="http://artist-3d.com/free_3d_models/dnm/model_disp.php?uid=1711" target="_blank">machman_3d</a>',
+		init_rotation: [ 0, 0, 0 ],
+		scale: 3.7,
+		init_material: 9,
+		body_materials: [ 3 ],
 
-				}
+		object:	null,
+		buttons: null,
+		materials: null
 
-			};
+	},
+
+	"f50": {
+
+		name: 	"Ferrari F50",
+		url:	"../libs/mrdoob-three.js-5c6ec4a/examples/obj/f50/F50NoUv_bin.js",
+		author: '<a href="http://artist-3d.com/free_3d_models/dnm/model_disp.php?uid=1687" target="_blank">daniel sathya</a>',
+		init_rotation: [ 0, 0, 0 ],
+		scale: 0.175,
+		init_material: 2,
+		body_materials: [ 3, 6, 7, 8, 9, 10, 23, 24 ],
+
+		object:	null,
+		buttons: null,
+		materials: null
+
+	},
+
+	"camaro": {
+
+		name: 	"Chevrolet Camaro",
+		url:	"../libs/mrdoob-three.js-5c6ec4a/examples/obj/camaro/CamaroNoUv_bin.js",
+		author: '<a href="http://www.turbosquid.com/3d-models/blender-camaro/411348" target="_blank">dskfnwn</a>',
+		init_rotation: [ 0.0, 0.0, 0.0 /*0, 1, 0*/ ],
+		scale: 75,
+		init_material: 0,
+		body_materials: [ 0 ],
+
+		object:	null,
+		buttons: null,
+		materials: null
+
+	}
+
+};
 			
 var r = "../libs/mrdoob-three.js-5c6ec4a/examples/textures/cube/Bridge2/";
 var urls = [ r + "posx.jpg", r + "negx.jpg",
