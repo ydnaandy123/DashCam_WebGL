@@ -107,6 +107,9 @@ GSVPANO.PanoLoader = function (parameters) {
                 _panoId = result.location.pano;
                 self.panoId = _panoId;
                 self.location = location;
+                self.rotation = rotation;
+                self.h = h;
+                self.data = result;				
                 self.composePanorama();
             } else {
                 if( self.onNoPanoramaData ) self.onNoPanoramaData( status );
