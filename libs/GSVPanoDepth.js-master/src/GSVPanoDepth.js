@@ -105,6 +105,7 @@ GSVPANO.PanoDepthLoader = function (parameters) {
     }
 
     this.computeDepthMap = function(header, indices, planes) {
+		console.log(header);
         var depthMap = null,
             x, y,
             planeIdx,
@@ -149,11 +150,20 @@ GSVPANO.PanoDepthLoader = function (parameters) {
                 }
             }
         }
-
+		var r = 0.5;
+		var nw = r*w;
+		var nh = r*h;
+		var ndepthMap = new Float32Array(nw*nh);
+        for(y=0; y<nh; ++y) {
+			for(x=0; x<nw; ++x) {
+				ndepthMap[y*nw + (nw-x-1)] = depthMap[Math.round(y/r)*w + Math.round(w-(x/r)-1)];
+			}	
+        }
+	
         return {
-            width: w,
-            height: h,
-            depthMap: depthMap
+            width: nw,
+            height: nh,
+            depthMap: ndepthMap
         };
     }
 

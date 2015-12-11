@@ -39,5 +39,8 @@ function PathPointAugment(p,s){
 		if(this.pathVector[i].x<0)deg=-deg;
 		this.pathAngle.push(deg);
 	}	
+	function Hello(){
+		console.log("hello");
+	}
 }
 
