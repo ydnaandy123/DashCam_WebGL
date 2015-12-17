@@ -158,7 +158,7 @@
 					fog: true
 				});						
 				// demo
-				render_street_view_by_location(25.041570 ,121.464616);				
+				render_street_view_by_location(25.041469, 121.464445);				
 				//render_street_view_by_id('KBWPzivydv0fwV0kcVjowA');
 					
 				
@@ -193,7 +193,17 @@
 						document.getElementById("depth_container").className = "show";
 					else
 						document.getElementById("depth_container").className = "hide";
-				});							
+				});			
+				explode = function() { console.log('hiii') };				
+				gui.add(this, "explode", false).name("HIII");					
+				
+				//var a = $("<a>").attr("href", "http://i.stack.imgur.com/L8rHf.png").attr("download", "img.png").appendTo("body");
+
+				//a[0].click();
+
+				//a.remove();		
+				var b = document.getElementById("dl")				;
+				
 				
 				document.getElementById("dl").addEventListener('click', dlCanvas, false);
 			}			
@@ -267,6 +277,19 @@
 					mycanvas = this.canvas;
 					pano_container.appendChild(this.canvas);
 					img_canvas_context = this.canvas.getContext('2d');
+					var dt = mycanvas.toDataURL('image/png');
+			  /* Change MIME type to trick the browser to downlaod the file instead of displaying it */
+			  //dt = dt.replace(/^data:image\/[^;]*/, 'data:application/octet-stream');
+
+			  /* In addition to <a>'s "download" attribute, you can define HTTP-style headers */
+			  //dt = dt.replace(/^data:application\/octet-stream/, 'data:application/octet-stream;headers=Content-Disposition%3A%20attachment%3B%20filename=Canvas.png');
+			  
+				var a = $("<a>").attr("href", dt).attr("download", "img.png").appendTo("body");
+
+				a[0].click();
+
+				a.remove();				  
+					console.log(dt,a);
 					main_rotation = this.data.tiles.centerHeading;
 					cur_lat = this.data.location.latLng.lat();
 					cur_lng = this.data.location.latLng.lng();

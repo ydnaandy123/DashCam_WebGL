@@ -1,0 +1,82 @@
+<!DOCTYPE html>
+<html lang="en">
+	<head>
+		<title>three.js webgl - orbit controls</title>
+		<meta charset="utf-8">
+		<meta name="viewport" content="width=device-width, user-scalable=no, minimum-scale=1.0, maximum-scale=1.0">
+		<style>
+			body {
+				color: #000;
+				font-family:Monospace;
+				font-size:13px;
+				text-align:center;
+				font-weight: bold;
+
+				background-color: #fff;
+			}
+		</style>
+	</head>
+
+	<body>
+		
+		<div>
+			<p>Image:</p>
+			<img id="myimg" src="../src/img/cuteDog.jpg"/>
+			<p>Canvas:</p>
+			<canvas id="myCanvas" style="border:1px solid"></canvas><br/>		
+			<a id="dl" download="Canvas.png" href="#">Download Canvas</a><br/>
+		</div>
+		<script src="../libs/jquery-1.11.3.min.js"></script>
+		<script>
+
+		var mycanvas = document.getElementById('myCanvas');		
+		var context = mycanvas.getContext('2d');		
+		var image = document.getElementById('myimg');
+		
+		//This wiil not work
+		// ref: http://blog.miniasp.com/post/2010/07/24/jQuery-ready-vs-load-vs-window-onload-event.aspx
+		/*$(function(){
+			//canvas
+			mycanvas.setAttribute('width', image.width);
+			mycanvas.setAttribute('height', image.height);
+			context.drawImage(image,0,0);
+			//hype-like
+			document.getElementById("dl").addEventListener('click', dlCanvas, false);
+			//auto downlaod
+			var a = $("<a>").attr("href", mycanvas.toDataURL('image/png')).attr("download", "img.png").appendTo("body");
+			a[0].click();
+			a.remove();				
+		});*/
+		
+		
+		window.onload =initial;
+		function initial(){
+			//canvas
+			mycanvas.setAttribute('width', image.width);
+			mycanvas.setAttribute('height', image.height);
+			context.drawImage(image,0,0);
+			//hype-like
+			document.getElementById("dl").addEventListener('click', dlCanvas, false);
+			//auto downlaod
+			var a = $("<a>").attr("href", mycanvas.toDataURL('image/png')).attr("download", "img.png").appendTo("body");
+			a[0].click();
+			a.remove();				
+		};		
+
+		function dlCanvas() {
+			var dt = mycanvas.toDataURL('image/png');
+			//document.getElementById("myimg").src = dt;
+			/* Change MIME type to trick the browser to downlaod the file instead of displaying it */
+			dt = dt.replace(/^data:image\/[^;]*/, 'data:application/octet-stream');
+			/* In addition to <a>'s "download" attribute, you can define HTTP-style headers */
+			dt = dt.replace(/^data:application\/octet-stream/, 'data:application/octet-stream;headers=Content-Disposition%3A%20attachment%3B%20filename=Canvas.png');
+
+			this.href = dt;
+		};		
+
+		</script>
+						
+
+
+	</body>
+</html>

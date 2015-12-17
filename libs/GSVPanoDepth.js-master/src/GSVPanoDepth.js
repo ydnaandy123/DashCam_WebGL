@@ -150,7 +150,7 @@ GSVPANO.PanoDepthLoader = function (parameters) {
                 }
             }
         }
-		var r = 0.5;
+		var r = 2;
 		var nw = r*w;
 		var nh = r*h;
 		var ndepthMap = new Float32Array(nw*nh);
