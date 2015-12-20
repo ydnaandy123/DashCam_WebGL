@@ -24,7 +24,6 @@
 				padding: 5px;
 
 			}
-
 			#pano_container {
 				position:absolute;
 				left:8px;
@@ -62,7 +61,7 @@
 		<div id="container" style="position:absolute; top:0px"></div>
 		<div id="pano_container" class="hide"></div>
 		<div id="depth_container" class="hide"></div>
-			
+		
 		<script src="../src/VideoSource/pathPoint.js"></script>
 		<script src="js/pathPoint_augment.js"></script>
 		
@@ -93,151 +92,118 @@
 			var root_object = 0, root_helper_object = 0;
 			var show_pano = false, show_depth = false;
 			var point_cloud_material, point_size = 0.7;
-			var traslate_x = 0, traslate_z = 0, scale=0.5;
+			var traslate_x = 0, traslate_z = 0, scale=1;
+			var mycanvas;
 			
-			var root_street_view_set = [], point_set = [];
-			
-			var	pathPointAugment = new PathPointAugment(pathPoint,600000);
+			var root_street_view_set=new THREE.Object3D();
+			var root_helper_object_set=new THREE.Object3D();
+			var length=0;
 			init();
 			animate();
 
 			function init() {
-
+				// scene create
 				scene = new THREE.Scene();
 				scene.fog = new THREE.FogExp2( 0xcccccc, 0.001 );
-
+				// render setting
 				renderer = new THREE.WebGLRenderer({antialias: true});
 				renderer.setClearColor( scene.fog.color );
 				renderer.setPixelRatio( window.devicePixelRatio );
 				renderer.setSize( window.innerWidth, window.innerHeight );
-
+				// container created
 				var container = document.getElementById( 'container' );
 				container.appendChild( renderer.domElement );
-
+				// camera setting
 				camera = new THREE.PerspectiveCamera( 75, window.innerWidth / window.innerHeight, 1, 10000 );
 				camera.position.y = 60;
 				camera.up.set(0.0, 1.0, 0.0)
-
+				// threejs.orbitControl added
 				controls = new THREE.OrbitControls( camera, renderer.domElement );
 				//controls.addEventListener( 'change', render ); // add this only if there is no animation loop (requestAnimationFrame)
-
-
-				// world
-
+				// world (x-z plane)
 				var gridXZ = new THREE.GridHelper(1000, 50);
 				gridXZ.setColors( new THREE.Color(0xff0000), new THREE.Color(0xffffff) );
 				scene.add(gridXZ);				
-
-
 				// lights
-
 				light = new THREE.DirectionalLight( 0xffffff );
 				light.position.set( 1, 1, 1 );
 				scene.add( light );
-
 				light = new THREE.DirectionalLight( 0x002288 );
 				light.position.set( -1, -1, -1 );
 				scene.add( light );
-
 				light = new THREE.AmbientLight( 0x222222 );
 				scene.add( light );
-
-				//
-
+				// state monitor
 				stats = new Stats();
 				stats.domElement.style.position = 'absolute';
 				stats.domElement.style.top = '0px';
 				stats.domElement.style.zIndex = 100;
 				container.appendChild( stats.domElement );
-
-				//
-
+				// eventListner
 				window.addEventListener( 'resize', onWindowResize, false );
-				//
-				
-				var material_spheres = new THREE.MeshLambertMaterial( { color: 0xdddddd } ),
-					sphere = new THREE.SphereGeometry( 5, 16, 8 );		
-				for(var i=0;i<pathPointAugment.pathPointCen.length/2;i++){
-					render_street_point_cloud(pathPoint[i*2] ,pathPoint[i*2+1], i);	
-					var mesh = new THREE.Mesh( sphere, material_spheres );
-					mesh.position.z = pathPointAugment.pathPointCen[i*2];//*scale;
-					mesh.position.x = pathPointAugment.pathPointCen[i*2+1]*scale;
-					mesh.position.y = 5;
-					mesh.receiveShadow = true;
-					mesh.castShadow = true;
-					point_set.push(mesh);
-					scene.add( mesh );					
-				}			
-				
-				
-				//
-				var gui = new dat.GUI();
-				gui.add(this, "point_size", 0.1, 2.0).name("Point size").onChange(function (value) {
-					point_cloud_material.size = point_size;
-				});
-				gui.add(this, "traslate_x", -100, 100).name("Traslate X").onChange(function (value) {
-					root_object.position.x = traslate_x ;
-					root_helper_object.position.x = traslate_x;/*
-					for(var i=0; i<root_street_view_set.length; i++){
-						root_street_view_set[i].position.x = traslate_x*i;
-					}					*/
-				});				
-				gui.add(this, "traslate_z", -100, 100).name("Traslate Z").onChange(function (value) {
-					root_object.position.z = traslate_z ;
-					root_helper_object.position.z = traslate_z;
-				});		
-				gui.add(this, "scale", 0.1,1).name("Scale").onChange(function (value) {
-					//root_object.position.z = traslate_z ;
-					//root_helper_object.position.z = traslate_z;
-					for(var i=0; i<point_set.length; i++){
-						point_set[i].position.x = pathPointAugment.pathPointCen[i*2+1]*scale;
-						root_street_view_set[i].position.x = pathPointAugment.pathPointCen[i*2+1]*scale;
-					}
-				});				
-				//
+				document.addEventListener('mousedown', on_document_mouse_down, false);
+			
+				// threejs PointsMaterial
 				point_cloud_material = new THREE.PointsMaterial({
 					size: point_size,
 					vertexColors: true,
 					sizeAttenuation: true,
 					fog: true
-				});				
-				//
-				document.addEventListener('mousedown', on_document_mouse_down, false);
-				
-			}
-			
-			
+				});						
+				// point cloud				
+				scene.add(root_street_view_set);				
+				scene.add(root_helper_object_set);
+				// demo
+				render_street_point_cloud(25.041520, 121.464531,0);			
+				render_street_point_cloud(25.041469, 121.464445,1);		
+				render_street_point_cloud(25.041417, 121.464359,2);
+				scaleR = 600000;
+				diffx = (121.464445-121.464531)*scaleR * Math.sin(25.041469*Math.PI / 180.0)*2;
+				diffz = -(25.041469-25.041520)*scaleR;
+				console.log(Math.sin(235.9893188476562*Math.PI / 180.0), Math.cos(235.9893188476562*Math.PI / 180.0));
+				// gui interface
+				var gui = new dat.GUI();
+				gui.add(this, "point_size", 0.1, 2.0).name("Point size").onChange(function (value) {
+					point_cloud_material.size = point_size;
+				});		
+				gui.add(this, "scale", 0, 1).name("Scale").onChange(function (value) {
+					root_helper_object_set.scale.set(scale,1,scale);
+					root_street_view_set.scale.set(scale,scale,scale);
+				});			
+				gui.add(this, "length", 0, 100).name("Length").onChange(function (value) {
+					root_helper_object_set.children[1].position.z = 0.8408868415590238*length;
+					root_helper_object_set.children[1].position.x = -0.5412109752147393*length;		
+					root_street_view_set.children[1].position.z = 0.8408868415590238*length;
+					root_street_view_set.children[1].position.x = -0.5412109752147393*length;	
+					
+					root_helper_object_set.children[2].position.z = root_helper_object_set.children[1].position.z+0.8289333126951519*length;
+					root_helper_object_set.children[2].position.x = root_helper_object_set.children[1].position.x-0.5593474439954486*length;		
+					root_street_view_set.children[2].position.z = root_street_view_set.children[1].position.z+0.8289333126951519*length;
+					root_street_view_set.children[2].position.x = root_street_view_set.children[1].position.x-0.5593474439954486*length;						
+				});									
+			}					
 
 			function onWindowResize() {
-
 				camera.aspect = window.innerWidth / window.innerHeight;
 				camera.updateProjectionMatrix();
 
 				renderer.setSize( window.innerWidth, window.innerHeight );
-
 			}
 
 			function animate() {
-
 				requestAnimationFrame( animate );
-
 				controls.update(); // required if controls.enableDamping = true, or if controls.autoRotate = true
-
 				stats.update();
-
+				
 				render();
-
 			}
 
 			function render() {
-
 				renderer.render( scene, camera );
-
 			}
+			
 			function on_document_mouse_down(event) {
-				//root_street_view_set[0].visible = !root_street_view_set[0].visible;
-				//render_street_cloud_point(25.041520 ,121.464531);
-
+			
 			}			
 			function render_street_point_cloud(lat, lon, index){
 				var img_canvas_context = 0;
@@ -247,14 +213,42 @@
 				});
 				var depth_loader = new GSVPANO.PanoDepthLoader();	
 				var root_street_view = new THREE.Object3D();
-
+				//load pano
 				pano_loader.load(new google.maps.LatLng(lat,lon));
 				pano_loader.onPanoramaLoad = function () {
+					root_helper_object = new THREE.Object3D();
+					if (this.data.links.length > 0) {
+						for (var i = 0; i < this.data.links.length; ++i) {
+							if(index==1){
+								console.log(this.data.links[i].heading);
+							}
+							var helper_geometry_base = new THREE.Object3D();
+							var helper_shape = new THREE.Shape();
+							helper_shape.moveTo(0, 0);
+							helper_shape.lineTo(-2, 5);
+							helper_shape.lineTo(2, 5);
+							helper_shape.lineTo(0, 0);
+							var extrudeSettings = {
+								amount: 0.25
+							};
+							extrudeSettings.bevelEnabled = false;
+							var helper_geometry = new THREE.ExtrudeGeometry(helper_shape, extrudeSettings);
+							var helper_mesh = new THREE.Mesh(helper_geometry, new THREE.MeshNormalMaterial())
+							helper_mesh.rotation.x = Math.PI / 2.0;
+							helper_mesh.rotation.z = Math.PI / 2.0;
+							helper_mesh.position.x = 16;
+							helper_mesh.userData = this.data.links[i].pano;
+							helper_geometry_base.rotation.y = (this.data.links[i].heading) * Math.PI / 180.0 ;
+							helper_geometry_base.add(helper_mesh);
+							root_helper_object.add(helper_geometry_base);				
+							root_helper_object_set.add(root_helper_object);
+						}
+					}					
 					img_canvas_context = this.canvas.getContext('2d');
 					main_rotation = this.data.tiles.centerHeading;
 					depth_loader.load(this.panoId);
-				};		
-
+				};
+				//load depth
 				depth_loader.onDepthLoad = function () {
 					var geometry = new THREE.BufferGeometry();
 					var num_points = this.depthMap.width * this.depthMap.height;
@@ -282,9 +276,22 @@
 							var color_canvas_x = parseInt(normalized_x * img_canvas_context.canvas.width);
 							var color_canvas_y = parseInt(normalized_y * img_canvas_context.canvas.height);
 							var color_index = color_canvas_y * img_canvas_context.canvas.width * 4 + color_canvas_x * 4;
-							colors[3 * n + 0] = (color_data[color_index + 0]) / 255.0;
-							colors[3 * n + 1] = (color_data[color_index + 1]) / 255.0;
-							colors[3 * n + 2] = (color_data[color_index + 2]) / 255.0;
+							/*if(160<lng && lng<200 && index==0){
+								colors[3 * n + 0] = (color_data[color_index + 0]) / 255.0;
+								colors[3 * n + 1] = (color_data[color_index + 1]) / 0.0;
+								colors[3 * n + 2] = (color_data[color_index + 2]) / 0.0;
+							}
+							else if((20>lng || lng>340) && index==1){
+								colors[3 * n + 0] = (color_data[color_index + 0]) / 255.0;
+								colors[3 * n + 1] = (color_data[color_index + 1]) / 0.0;
+								colors[3 * n + 2] = (color_data[color_index + 2]) / 0.0;
+							
+							}
+							else{	*/						
+								colors[3 * n + 0] = (color_data[color_index + 0]) / 255.0;
+								colors[3 * n + 1] = (color_data[color_index + 1]) / 255.0;
+								colors[3 * n + 2] = (color_data[color_index + 2]) / 255.0;
+							//}
 							n++;
 						}
 					}
@@ -293,20 +300,10 @@
 					geometry.computeBoundingBox();
 					var pointcloud = new THREE.Points(geometry, point_cloud_material);
 					pointcloud.rotation.y = main_rotation * Math.PI / 180.0;
-					root_street_view.add(pointcloud);
-					root_street_view.position.z = pathPointAugment.pathPointCen[index*2];
-					root_street_view.position.x = pathPointAugment.pathPointCen[index*2+1]*scale;					
+					root_street_view.add(pointcloud);			
 				}
-
-
-
-				scene.add(root_street_view);
-				root_street_view_set.push(root_street_view);
-				//render_street_cloud_point(25.041520 ,121.464531);
+				root_street_view_set.add(root_street_view);
 			}
-			
-
 		</script>
-
 	</body>
 </html>

@@ -21,12 +21,12 @@ function PathPointAugment(p,s){
 	this.pathPointScalar = s;
 	this.pathPoint = p;
 	this.pathPointCen=[]; this.pathVector=[]; this.pathAngle=[];
-	console.log(this.pathPointCen);
+	//console.log(this.pathPointCen);
 	for(var i=0;i<pathPoint.length/2;i++){
 		this.pathPointCen[i*2] = (pathPoint[i*2] - pathPoint[0]) * -this.pathPointScalar;
 		this.pathPointCen[i*2+1] = (pathPoint[i*2+1] - pathPoint[1]) * this.pathPointScalar;
 	}
-	console.log(this.pathPointCen);
+	//console.log(this.pathPointCen);
 	for(var i=0; i<this.pathPointCen.length/2-1; i++){
 		var vec;
 		vec = new THREE.Vector3(this.pathPointCen[(i+1)*2+1]-this.pathPointCen[i*2+1],0,this.pathPointCen[(i+1)*2]-this.pathPointCen[i*2]);

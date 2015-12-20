@@ -143,16 +143,19 @@ GSVPANO.PanoDepthLoader = function (parameters) {
                 if(planeIdx > 0) {
                     plane = planes[planeIdx];
 
-                    t = Math.abs( plane.d / (v[0]*plane.n[0] + v[1]*plane.n[1] + v[2]*plane.n[2]) );
+					t = Math.abs( plane.d / (v[0]*plane.n[0] + v[1]*plane.n[1] + v[2]*plane.n[2]) );
                     depthMap[y*w + (w-x-1)] = t;
                 } else {
                     depthMap[y*w + (w-x-1)] = 9999999999999999999.;
                 }
             }
         }
-		var r = 2;
+		//add by myself
+		//rescale the size of depthMap
+		var r = 1;
 		var nw = r*w;
 		var nh = r*h;
+		
 		var ndepthMap = new Float32Array(nw*nh);
         for(y=0; y<nh; ++y) {
 			for(x=0; x<nw; ++x) {
