@@ -243,9 +243,9 @@
 					pano_container.appendChild(this.canvas);
 					img_canvas_context = this.canvas.getContext('2d');
 					//download
-					var a = $("<a>").attr("href", this.canvas.toDataURL('image/png')).attr("download", "img.png").appendTo("body");
-					a[0].click();
-					a.remove();							
+					//var a = $("<a>").attr("href", this.canvas.toDataURL('image/png')).attr("download", "img.png").appendTo("body");
+					//a[0].click();
+					//a.remove();							
 					main_rotation = this.data.tiles.centerHeading;
 					cur_lat = this.data.location.latLng.lat();
 					cur_lng = this.data.location.latLng.lng();
@@ -341,9 +341,10 @@
 						scene.remove(old_root_object);
 					}
 					//download
-					var a = $("<a>").attr("href", canvas.toDataURL('image/png')).attr("download", "img.png").appendTo("body");
-					a[0].click();
-					a.remove();		
+					//var a = $("<a>").attr("href", canvas.toDataURL('image/png')).attr("download", "img.png").appendTo("body");
+					//a[0].click();
+					//a.remove();		
+
 
 				}
 			}

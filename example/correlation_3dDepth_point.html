@@ -154,8 +154,8 @@
 				scene.add(root_street_view_set);				
 				scene.add(root_helper_object_set);
 				// demo
-				render_street_point_cloud(25.041520, 121.464531,0);			
-				render_street_point_cloud(25.041469, 121.464445,1);		
+				//render_street_point_cloud(25.041520, 121.464531,0);			
+				//render_street_point_cloud(25.041469, 121.464445,1);		
 				render_street_point_cloud(25.041417, 121.464359,2);
 				scaleR = 600000;
 				diffx = (121.464445-121.464531)*scaleR * Math.sin(25.041469*Math.PI / 180.0)*2;
@@ -176,10 +176,10 @@
 					root_street_view_set.children[1].position.z = 0.8408868415590238*length;
 					root_street_view_set.children[1].position.x = -0.5412109752147393*length;	
 					
-					root_helper_object_set.children[2].position.z = root_helper_object_set.children[1].position.z+0.8289333126951519*length;
-					root_helper_object_set.children[2].position.x = root_helper_object_set.children[1].position.x-0.5593474439954486*length;		
-					root_street_view_set.children[2].position.z = root_street_view_set.children[1].position.z+0.8289333126951519*length;
-					root_street_view_set.children[2].position.x = root_street_view_set.children[1].position.x-0.5593474439954486*length;						
+					//root_helper_object_set.children[2].position.z = root_helper_object_set.children[1].position.z+0.8289333126951519*length;
+					//root_helper_object_set.children[2].position.x = root_helper_object_set.children[1].position.x-0.5593474439954486*length;		
+					//root_street_view_set.children[2].position.z = root_street_view_set.children[1].position.z+0.8289333126951519*length;
+					//root_street_view_set.children[2].position.x = root_street_view_set.children[1].position.x-0.5593474439954486*length;						
 				});									
 			}					
 
@@ -280,18 +280,19 @@
 								colors[3 * n + 0] = (color_data[color_index + 0]) / 255.0;
 								colors[3 * n + 1] = (color_data[color_index + 1]) / 0.0;
 								colors[3 * n + 2] = (color_data[color_index + 2]) / 0.0;
-							}
-							else if((20>lng || lng>340) && index==1){
+							}*/
+							if((color_canvas_x==750 || color_canvas_y==143) && index==2){
 								colors[3 * n + 0] = (color_data[color_index + 0]) / 255.0;
 								colors[3 * n + 1] = (color_data[color_index + 1]) / 0.0;
 								colors[3 * n + 2] = (color_data[color_index + 2]) / 0.0;
+								console.log(color_canvas_x,color_canvas_y,depth);
 							
 							}
-							else{	*/						
+							else{							
 								colors[3 * n + 0] = (color_data[color_index + 0]) / 255.0;
 								colors[3 * n + 1] = (color_data[color_index + 1]) / 255.0;
 								colors[3 * n + 2] = (color_data[color_index + 2]) / 255.0;
-							//}
+							}
 							n++;
 						}
 					}

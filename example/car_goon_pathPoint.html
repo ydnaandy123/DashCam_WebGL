@@ -38,7 +38,7 @@
 <body>
 		<div id="d">
 			<div id="info">
-				<a href="http://threejs.org" target="_blank">three.js</a> webgl demo :
+				<!--<a href="http://threejs.org" target="_blank">three.js</a> webgl demo :-->
 				texture by <a href="http://www.humus.name/index.php?page=Textures" target="_blank">Humus</a> :
 				<span id="car_info">
 					<span id="car_name">Bugatti Veyron model</span>
@@ -62,6 +62,8 @@
 		<script src="../libs/mrdoob-three.js-5c6ec4a/examples/js/loaders/BinaryLoader.js"></script>
 		<script src="../src/VideoSource/pathPoint.js"></script>
 		<script src="js/pathPoint_augment.js"></script>
+		
+		<script src="../libs/mrdoob-three.js-5c6ec4a/examples/js/controls/OrbitControls.js"></script>
 
 <script>
 var clock = new THREE.Clock();
@@ -111,13 +113,13 @@ function init()
 					var mesh = new THREE.Mesh( sphere, material_spheres );
 					mesh.position.z = pathPointAugment.pathPointCen[i*2];
 					mesh.position.x = pathPointAugment.pathPointCen[i*2+1];
-					mesh.position.y = 15;
+					mesh.position.y = 0;
 					mesh.receiveShadow = true;
 					mesh.castShadow = true;
 					scene.add( mesh );					
 				}		
 	// add control here (after the camera is defined)
-	//controls = new THREE.OrbitControls (camera, render.domElement);
+	controls = new THREE.OrbitControls (camera, render.domElement);
 	var gridXZ = new THREE.GridHelper(1000, 50);
 	gridXZ.setColors( new THREE.Color(0xff0000), new THREE.Color(0xffffff) );
 	//scene.add(gridXZ);
@@ -130,6 +132,7 @@ function init()
 		mesh.scale.set(11, 10, 10);
 		mesh.receiveShadow = true;
 		mesh.castShadow = true;
+		mesh.position.y = -15;
 		//for match scale
 		scene.add(mesh);
 	});	
@@ -141,7 +144,15 @@ function init()
 	var ambientLight = new THREE.AmbientLight (0x111111);
 	scene.add(ambientLight);
 	countSecond();
-	
+				light = new THREE.DirectionalLight( 0xffffff );
+				light.position.set( 1, 1, 1 );
+				scene.add( light );
+				light = new THREE.DirectionalLight( 0x002288 );
+				light.position.set( -1, -1, -1 );
+				scene.add( light );
+				light = new THREE.AmbientLight( 0x222222 );
+				scene.add( light );	
+				
 }
 var start=0,nangle;
 function animate()
@@ -187,7 +198,7 @@ function myclamp(x,lo,hi)
 
 function update()
 {
-	//controls.update();
+	controls.update();
 	/*
 	keyboard.update();         
 	if ( keyboard.pressed("left") )   
