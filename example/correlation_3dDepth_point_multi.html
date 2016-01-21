@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html lang="en">
 	<head>
-		<title>three.js webgl - orbit controls</title>
+		<title>correlation_3dDepth_point_multi</title>
 		<meta charset="utf-8">
 		<meta name="viewport" content="width=device-width, user-scalable=no, minimum-scale=1.0, maximum-scale=1.0">
 		<style>
@@ -157,10 +157,6 @@
 				//render_street_point_cloud(25.041520, 121.464531,0);			
 				render_street_point_cloud(25.041469, 121.464445,1);		
 				render_street_point_cloud(25.041417, 121.464359,2);
-				scaleR = 600000;
-				diffx = (121.464445-121.464531)*scaleR * Math.sin(25.041469*Math.PI / 180.0)*2;
-				diffz = -(25.041469-25.041520)*scaleR;
-				console.log(Math.sin(235.9893188476562*Math.PI / 180.0), Math.cos(235.9893188476562*Math.PI / 180.0));
 				// gui interface
 				var gui = new dat.GUI();
 				gui.add(this, "point_size", 0.1, 2.0).name("Point size").onChange(function (value) {
@@ -169,18 +165,7 @@
 				gui.add(this, "scale", 0, 1).name("Scale").onChange(function (value) {
 					root_helper_object_set.scale.set(scale,1,scale);
 					root_street_view_set.scale.set(scale,scale,scale);
-				});			
-				gui.add(this, "length", 0, 100).name("Length").onChange(function (value) {
-					root_helper_object_set.children[1].position.z = 0.8408868415590238*length;
-					root_helper_object_set.children[1].position.x = -0.5412109752147393*length;		
-					root_street_view_set.children[1].position.z = 0.8408868415590238*length;
-					root_street_view_set.children[1].position.x = -0.5412109752147393*length;	
-					
-					//root_helper_object_set.children[2].position.z = root_helper_object_set.children[1].position.z+0.8289333126951519*length;
-					//root_helper_object_set.children[2].position.x = root_helper_object_set.children[1].position.x-0.5593474439954486*length;		
-					//root_street_view_set.children[2].position.z = root_street_view_set.children[1].position.z+0.8289333126951519*length;
-					//root_street_view_set.children[2].position.x = root_street_view_set.children[1].position.x-0.5593474439954486*length;						
-				});									
+				});										
 			}					
 
 			function onWindowResize() {
@@ -267,12 +252,7 @@
 							pos.y = (Math.sin(lat * Math.PI / 180.0));
 							pos.z = (r * Math.sin(lng * Math.PI / 180.0));
 							pos.multiplyScalar(depth);
-							pos.multiplyScalar(2.0);
-							if(index==2){
-								pos.x = pos.x - 9.5809;
-								pos.y = pos.y - 1.1434;
-								pos.z = pos.z - 0.0040;		
-							}							
+							pos.multiplyScalar(2.0);			
 							positions[3 * n + 0] = -(isNaN(pos.x) ? 0 : pos.x);
 							positions[3 * n + 1] = -(isNaN(pos.y) ? 0 : pos.y);
 							positions[3 * n + 2] = -(isNaN(pos.z) ? 0 : pos.z);
@@ -281,28 +261,20 @@
 							var color_canvas_x = parseInt(normalized_x * img_canvas_context.canvas.width);
 							var color_canvas_y = parseInt(normalized_y * img_canvas_context.canvas.height);
 							var color_index = color_canvas_y * img_canvas_context.canvas.width * 4 + color_canvas_x * 4;
-							/*if(160<lng && lng<200 && index==0){
-								colors[3 * n + 0] = (color_data[color_index + 0]) / 255.0;
-								colors[3 * n + 1] = (color_data[color_index + 1]) / 0.0;
-								colors[3 * n + 2] = (color_data[color_index + 2]) / 0.0;
-							}*/
-							if((color_canvas_x==751 || color_canvas_y==143) && index==2){
-								colors[3 * n + 0] = (color_data[color_index + 0]) / 255.0;
-								colors[3 * n + 1] = (color_data[color_index + 1]) / 0.0;
-								colors[3 * n + 2] = (color_data[color_index + 2]) / 0.0;
-								console.log(color_canvas_x,color_canvas_y,depth);
-							
-							}
-							else{							
-								colors[3 * n + 0] = (color_data[color_index + 0]) / 255.0;
-								colors[3 * n + 1] = (color_data[color_index + 1]) / 255.0;
-								colors[3 * n + 2] = (color_data[color_index + 2]) / 255.0;
-							}
+							colors[3 * n + 0] = (color_data[color_index + 0]) / 255.0;
+							colors[3 * n + 1] = (color_data[color_index + 1]) / 255.0;
+							colors[3 * n + 2] = (color_data[color_index + 2]) / 255.0;
 							n++;
 						}
 					}
 					geometry.addAttribute('position', new THREE.BufferAttribute(positions, 3));
 					geometry.addAttribute('color', new THREE.BufferAttribute(colors, 3));
+					
+					if(index==1){
+						var m = new THREE.Matrix4();
+						m.set(1,0.004,0,-9.5809, -0.007,1,-0.003,-1.1434, 0,0.003,1,-0.004, 0,0,0,1);
+						geometry.applyMatrix(m);
+					}
 					geometry.computeBoundingBox();
 					var pointcloud = new THREE.Points(geometry, point_cloud_material);
 					root_street_view.add(pointcloud);			

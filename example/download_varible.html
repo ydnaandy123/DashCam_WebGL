@@ -298,6 +298,7 @@
 					var colors = new Float32Array(num_points * 3);
 					var color_data = img_canvas_context.getImageData(0, 0, img_canvas_context.canvas.width, img_canvas_context.canvas.height).data;
 					var n = 0;
+					var iter=0;
 					for (var y = 0; y < this.depthMap.height; ++y) {
 						var lat = (y / this.depthMap.height) * 180.0 - 90.0;
 						var r = Math.cos(lat * Math.PI / 180.0);
@@ -322,6 +323,11 @@
 							colors[3 * n + 1] = (color_data[color_index + 1]) / 255.0;
 							colors[3 * n + 2] = (color_data[color_index + 2]) / 255.0;
 							n++;
+							
+							if(depth<10 && iter<10){
+								console.log(pos,depth);
+								iter = iter+1;
+							}
 						}
 					}
 					geometry.addAttribute('position', new THREE.BufferAttribute(positions, 3));
@@ -333,14 +339,13 @@
 					if (old_root_object) {
 						scene.remove(old_root_object);
 					}
-					console.log(pointcloud);
 					
 					// download point here
-					var hiddenElement = document.createElement('a');
+					/*var hiddenElement = document.createElement('a');
 					hiddenElement.href = 'data:attachment/text,' + encodeURI('x:'+positions[0]+' y:'+positions[1]+' z:'+positions[2]);
 					hiddenElement.target = '_blank';
 					hiddenElement.download = 'point.txt';
-					hiddenElement.click();					
+					hiddenElement.click();	*/				
 					
 				}
 			}

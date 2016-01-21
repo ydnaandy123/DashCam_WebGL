@@ -113,7 +113,6 @@ GSVPANO.PanoDepthLoader = function (parameters) {
             v = [0, 0, 0],
             w = header.width, h = header.height,
             plane, t, p;
-
         depthMap = new Float32Array(w*h);
 
         var sin_theta = new Float32Array(h);

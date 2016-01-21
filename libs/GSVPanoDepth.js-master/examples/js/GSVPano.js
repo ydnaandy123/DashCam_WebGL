@@ -76,7 +76,15 @@ GSVPANO.PanoLoader = function (parameters) {
             
         _count = 0;
         _total = w * h;
-        
+		/***/
+		var myimg = document.createElement('img');
+		//var canvasContext = canvas.getContext('2d');
+                //canvas.setAttribute('width', 512);
+                //canvas.setAttribute('height', 512);
+		//canvasContext.translate(512, 0);
+		//canvasContext.scale(-1, 1);
+		/***/
+		var myimg;
         for( y = 0; y < h; y++) {
             for( x = 0; x < w; x++) {
                 url = 'http://maps.google.com/cbk?output=tile&panoid=' + _panoId + '&zoom=' + _zoom + '&x=' + x + '&y=' + y + '&' + Date.now();
@@ -86,11 +94,14 @@ GSVPANO.PanoLoader = function (parameters) {
                         self.composeFromTile(x, y, this);
                     });
                     img.crossOrigin = '';
-                    img.src = url;
+                    img.src = url;					
+					//document.body.appendChild(img);	
                 })(x, y);
             }
-        }
-        
+        }	
+		//canvasContext.drawImage(myimg, 0, 0);
+		//document.body.appendChild(myimg);	
+        	
     };
 
     this.load = function (location) {
