@@ -4,14 +4,16 @@ GSVPANO.PanoDepthLoader = function (parameters) {
     'use strict';
 
     var _parameters = parameters || {},
-        onDepthLoad = null;
+        onDepthLoad = null,
+		planes = [],
+        indices = [];
 
     this.load = function(panoId) {
         var self = this,
             url;
 
         url = "http://maps.google.com/cbk?output=json&cb_client=maps_sv&v=4&dm=1&pm=1&ph=1&hl=en&panoid=" + panoId;
-
+		//console.log(url)
         $.ajax({
                 url: url,
                 dataType: 'jsonp'
@@ -28,6 +30,8 @@ GSVPANO.PanoDepthLoader = function (parameters) {
                 }
                 if(self.onDepthLoad) {
                     self.depthMap = depthMap;
+					self.planes = planes;
+					self.indices = indices;
                     self.onDepthLoad();
                 }
             })
@@ -64,6 +68,8 @@ GSVPANO.PanoDepthLoader = function (parameters) {
         depthMap = new Uint8Array(decompressedDepthMap.length);
         for(i=0; i<decompressedDepthMap.length; ++i)
             depthMap[i] = decompressedDepthMap.charCodeAt(i);
+		
+		//console.log(depthMap)
         return depthMap;
     }
 
@@ -78,9 +84,7 @@ GSVPANO.PanoDepthLoader = function (parameters) {
     }
     
     this.parsePlanes = function(header, depthMap) {
-        var planes = [],
-            indices = [],
-            i,
+        var i,
             n = [0, 0, 0],
             d,
             byteOffset;
@@ -99,13 +103,14 @@ GSVPANO.PanoDepthLoader = function (parameters) {
                 n: n.slice(0),
                 d: d
             });
+			//console.log(i, n);
         }
-
+		//console.log(planes, indices);
         return { planes: planes, indices: indices };
     }
 
     this.computeDepthMap = function(header, indices, planes) {
-		console.log(header);
+		//console.log(header);
         var depthMap = null,
             x, y,
             planeIdx,

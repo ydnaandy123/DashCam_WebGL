@@ -63,7 +63,6 @@
 		<div id="depth_container" class="hide"></div>
 		
 		<script src="../src/VideoSource/pathPoint.js"></script>
-		<script src="js/pathPoint_augment.js"></script>
 		
 		<script src="../libs/mrdoob-three.js-5c6ec4a/examples/../build/three.min.js"></script>
 
@@ -91,16 +90,66 @@
 			var svs = new google.maps.StreetViewService();
 			var root_object = 0, root_helper_object = 0;
 			var show_pano = false, show_depth = false;
-			var point_cloud_material, point_size = 0.7;
+			var point_cloud_material, point_size = 0.1;
 			var traslate_x = 0, traslate_z = 0, scale=1;
 			var mycanvas;
 			
 			var root_street_view_set=new THREE.Object3D();
 			var root_helper_object_set=new THREE.Object3D();
 			var length=0;
+			
+			var Rt = [];			
+			var m0 = new THREE.Matrix4();
+			m0.set( 0.9968,    0.0796,    0.0020,   21.7831,
+					-0.0796,    0.9967,    0.0181,   -1.5909,
+					-0.0005,   -0.0182,    0.9998,    0.5480,
+					0	  ,	   0     ,         0,          1);
+			var m1 = new THREE.Matrix4();
+			m1.set(  0.9999,    0.0051,    0.0138,   22.4335,
+					-0.0050,    1.0000,   -0.0058,   -0.7050,
+					-0.0138,    0.0058,    0.9999,   -2.3004,
+					0      ,         0,         0,         1);
+			var m2 = new THREE.Matrix4();
+			m2.set( 0.9892,    0.0003,   -0.1466,   23.1005,
+					-0.0036,    0.9997,   -0.0223,   -0.2707,
+					0.1465,   0.0226,    0.9889,    4.4604,
+					0      ,         0,         0,         1);
+			var m3 = new THREE.Matrix4();
+			m3.set(  0.9996,    0.0279,    0.0053,   32.0827,
+					-0.0279,    0.9995,   -0.0124,   -0.3385,
+					-0.0056,    0.0123,    0.9999,    0.0488,
+					0      ,         0,         0,         1);	
+			var m4 = new THREE.Matrix4();
+			m4.set( 1.0000,   -0.0024,    0.0002,   22.6401,
+					0.0024,    0.9999,	   -0.0161,   -0.0614,
+					-0.0001,    0.0161,    0.9999,    1.0708,
+					0      ,         0,         0,         1);						
+			Rt.push(m0);
+			Rt.push(m1);
+			Rt.push(m2);
+			Rt.push(m3);
+			Rt.push(m4);
+			
+			var transLate = [];
+			var t0 = new THREE.Vector3(21.7831, -1.5909, 0.5480);
+			var t1 = new THREE.Vector3(22.4335, -0.7050, -2.3004);
+			var t2 = new THREE.Vector3(23.1005, -0.2707, 4.4604);
+			var t3 = new THREE.Vector3(32.0827, -0.3385, 0.0488);
+			var t4 = new THREE.Vector3(22.6401,   -0.0614,    1.0708);
+			transLate.push(t0);
+			transLate.push(t1);
+			transLate.push(t2);
+			transLate.push(t3);
+			transLate.push(t4);
+			
+			var wX0, wY0, wZ0, earthR=20037508.34;
+			var x0=0, z0=0;
+			
+			var panoNormal=[], panoPos=[], myCam=true;
+			
 			init();
-			animate();
-
+			animate();			
+			
 			function init() {
 				// scene create
 				scene = new THREE.Scene();
@@ -153,10 +202,10 @@
 				// point cloud				
 				scene.add(root_street_view_set);				
 				scene.add(root_helper_object_set);
-				// demo
-				//render_street_point_cloud(25.041520, 121.464531,0);			
-				render_street_point_cloud(25.041469, 121.464445,1);		
-				render_street_point_cloud(25.041417, 121.464359,2);
+				// demo			
+				for(var i=0;i<=pathPoint.length/2;i++){
+					render_street_point_cloud(pathPoint[2*i], pathPoint[2*i+1],i);	
+				}
 				// gui interface
 				var gui = new dat.GUI();
 				gui.add(this, "point_size", 0.1, 2.0).name("Point size").onChange(function (value) {
@@ -165,7 +214,10 @@
 				gui.add(this, "scale", 0, 1).name("Scale").onChange(function (value) {
 					root_helper_object_set.scale.set(scale,1,scale);
 					root_street_view_set.scale.set(scale,scale,scale);
-				});										
+				});			
+				gui.add(this, "myCam", false).name("FreeCamera").onChange(function (value) {
+					console.log(myCam);
+				});								
 			}					
 
 			function onWindowResize() {
@@ -174,10 +226,34 @@
 
 				renderer.setSize( window.innerWidth, window.innerHeight );
 			}
-
+			var start, end, speed=0.0, dir=new THREE.Vector3();
 			function animate() {
 				requestAnimationFrame( animate );
-				controls.update(); // required if controls.enableDamping = true, or if controls.autoRotate = true
+				if(myCam){				
+					controls.update(); // required if controls.enableDamping = true, or if controls.autoRotate = true
+				}
+				else{					
+					var yoo = new THREE.Vector3(0,0,0);
+					yoo.crossVectors(panoPos[1], panoNormal[1]);
+					yoo.normalize();
+					start = new THREE.Vector3(panoPos[1].x - yoo.x * 100,
+					panoPos[1].y - yoo.y * 100, panoPos[1].z - yoo.z * 100);
+					var yoo = new THREE.Vector3(0,0,0);
+					yoo.crossVectors(panoPos[5], panoNormal[5]);
+					yoo.normalize();
+					end = new THREE.Vector3(panoPos[5].x - yoo.x * 100,
+					panoPos[5].y - yoo.y * 100, panoPos[5].z - yoo.z * 100);
+					dir.subVectors(end, start); 
+					camera.position.x = start.x;
+					camera.position.y = start.y;
+					camera.position.z = start.z;
+					speed = (speed + 0.005)%1;
+					//camera.translateOnAxis(dir,speed);
+					//camera.lookAt(pointcloud);
+					//camera.translateOnAxis(panoNormal[index], 100);
+					camera.lookAt(root_street_view_set.children[0].position);
+					//console.log(index, panoNormal[index]);
+				}				
 				stats.update();
 				
 				render();
@@ -198,6 +274,31 @@
 				});
 				var depth_loader = new GSVPANO.PanoDepthLoader();	
 				var root_street_view = new THREE.Object3D();
+				//World coordinate
+				var wX, wY, wZ, wR, wT;
+				wZ = earthR*Math.sin(lat * Math.PI / 180.0);
+				wR = earthR*Math.cos(lat * Math.PI / 180.0);
+				wX = wR*Math.cos(lon * Math.PI / 360.0);
+				wY = wR*Math.sin(lon * Math.PI / 360.0);
+				//console.log("world coor:", wX,wY,wZ,wR, earthR);
+				wT = new THREE.Vector3(wX, wY, wZ);
+				if(index==0){
+					wX0 = wX; wY0 = wY; wZ0 = wZ;
+					wX = 0; wY = 0; wZ = 0;
+				}
+				else{
+					wX = wX - wX0; wY = wY - wY0; wZ = wZ - wZ0;
+				}
+				//console.log("THREEJS coor:", wX,wY,wZ,wR);
+				
+				//
+				var xoffs = lon * earthR /180 - x0;
+				var zoffs = Math.log(Math.tan((90+lat) * Math.PI / 360)) / (Math.PI/180) * (earthR/180) - z0;
+				if(index==0){
+					x0 = xoffs; z0=zoffs;
+					xoffs = 0; zoffs = 0;
+				}
+				//console.log("offs", xoffs, zoffs);
 				//load pano
 				pano_loader.load(new google.maps.LatLng(lat,lon));
 				pano_loader.onPanoramaLoad = function () {
@@ -205,7 +306,7 @@
 					if (this.data.links.length > 0) {
 						for (var i = 0; i < this.data.links.length; ++i) {
 							if(index==1){
-								console.log(this.data.links[i].heading);
+								//console.log(this.data.links[i].heading);
 							}
 							var helper_geometry_base = new THREE.Object3D();
 							var helper_shape = new THREE.Shape();
@@ -246,6 +347,7 @@
 						var r = Math.cos(lat * Math.PI / 180.0);
 						for (var x = 0; x < this.depthMap.width; ++x) {
 							var depth = parseFloat(this.depthMap.depthMap[y * this.depthMap.width + (this.depthMap.width - x)]);
+							if(depth>50)continue;
 							var lng = ((x / this.depthMap.width)) * 360.0 - 0.0;
 							var pos = new THREE.Vector3();
 							pos.x = (r * Math.cos(lng * Math.PI / 180.0));
@@ -264,21 +366,52 @@
 							colors[3 * n + 0] = (color_data[color_index + 0]) / 255.0;
 							colors[3 * n + 1] = (color_data[color_index + 1]) / 255.0;
 							colors[3 * n + 2] = (color_data[color_index + 2]) / 255.0;
+							
+							if(this.depthMap.width - x == 41 && y == 119){
+								//console.log(this.depthMap.width - x,y,depth);
+								//console.log(color_canvas_x, color_canvas_y);
+								//console.log(pos.x, pos.y, pos.z);
+							}
+							if(this.depthMap.width - x == 174 && y == 146){
+								//console.log(this.depthMap.width - x,y,depth);
+							}
+							if(this.depthMap.width - x == 420 && y == 154){
+								//console.log(this.depthMap.width - x,y,depth);
+							}
 							n++;
 						}
 					}
 					geometry.addAttribute('position', new THREE.BufferAttribute(positions, 3));
 					geometry.addAttribute('color', new THREE.BufferAttribute(colors, 3));
-					
-					if(index==1){
-						var m = new THREE.Matrix4();
-						m.set(1,0.004,0,-9.5809, -0.007,1,-0.003,-1.1434, 0,0.003,1,-0.004, 0,0,0,1);
-						geometry.applyMatrix(m);
-					}
 					geometry.computeBoundingBox();
 					var pointcloud = new THREE.Points(geometry, point_cloud_material);
-					root_street_view.add(pointcloud);			
-					pointcloud.rotation.y = main_rotation * Math.PI / 180.0;
+					root_street_view.add(pointcloud);	
+					
+					
+					//root_street_view.rotation.y = main_rotation * Math.PI / 180.0;
+					for(var i=0; i<index; i++){
+						//root_street_view.applyMatrix(Rt[i]);
+					}
+					for(var i=0; i<index; i++){
+						//root_street_view.translateOnAxis(transLate[i], 1);
+					}
+					
+					
+					//root_street_view.rotation.y = main_rotation * Math.PI / 180.0;
+					//root_street_view.position.x = zoffs;
+					//root_street_view.position.z = -xoffs;
+					
+					root_street_view.position.x = wX;
+					root_street_view.position.y = wY;
+					root_street_view.position.z = wZ;
+					root_street_view.lookAt(wT);
+					
+					panoPos[index] = new THREE.Vector3(wX, wY, wZ);
+					panoNormal[index] = wT.normalize();
+					
+					//root_street_view.children[0].rotation.y = Math.PI * 0.5;
+					//pointcloud.position.set(zoffs,0,-xoffs);
+					//pointcloud.rotation.z = (isNaN(zz.angleTo(new THREE.Vector3(0,0,wZ)))? 0 : zz.angleTo(new THREE.Vector3(0,0,wZ)));
 				}
 				root_street_view_set.add(root_street_view);
 			}

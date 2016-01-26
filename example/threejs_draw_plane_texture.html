@@ -1,0 +1,108 @@
+<!DOCTYPE HTML>
+<html lang="en">
+	<head>
+		<meta charset="utf-8">
+		<script src="../libs/mrdoob-three.js-5c6ec4a/examples/../build/three.min.js"></script>
+		<script src="../libs/mrdoob-three.js-5c6ec4a/examples/js/controls/OrbitControls.js"></script>
+
+		<script src="../libs/mrdoob-three.js-5c6ec4a/examples/js/Detector.js"></script>
+		<script src="../libs/mrdoob-three.js-5c6ec4a/examples/js/libs/stats.min.js"></script>
+	</head>
+	<body>
+		<h1 style="text-align:center">DRAW A PLANE</h1>
+		<script>
+		init();
+		animate();		
+		
+		function init(){
+			// scene create
+			scene = new THREE.Scene();
+			scene.fog = new THREE.FogExp2( 0xcccccc, 0.001 );
+			// render setting
+			renderer = new THREE.WebGLRenderer({antialias: true});
+			renderer.setClearColor( scene.fog.color );
+			renderer.setPixelRatio( window.devicePixelRatio );
+			renderer.setSize( window.innerWidth, window.innerHeight );
+			// container created
+			var container = document.createElement("div");
+			container.appendChild( renderer.domElement );
+			document.body.appendChild(container);
+			// camera setting
+			camera = new THREE.PerspectiveCamera( 75, window.innerWidth / window.innerHeight, 1, 10000 );
+			camera.position.y = 60;
+			camera.up.set(0.0, 1.0, 0.0)
+			// threejs.orbitControl added
+			controls = new THREE.OrbitControls( camera, renderer.domElement );
+			//controls.addEventListener( 'change', render ); // add this only if there is no animation loop (requestAnimationFrame)
+			// world (x-z plane)
+			var gridXZ = new THREE.GridHelper(1000, 50);
+			gridXZ.setColors( new THREE.Color(0xff0000), new THREE.Color(0xffffff) );
+			scene.add(gridXZ);				
+			// lights
+			light = new THREE.DirectionalLight( 0xffffff );
+			light.position.set( 1, 1, 1 );
+			scene.add( light );
+			light = new THREE.DirectionalLight( 0x002288 );
+			light.position.set( -1, -1, -1 );
+			scene.add( light );
+			light = new THREE.AmbientLight( 0x222222 );
+			scene.add( light );
+			// state monitor
+			stats = new Stats();
+			stats.domElement.style.position = 'absolute';
+			stats.domElement.style.top = '0px';
+			stats.domElement.style.zIndex = 100;
+			container.appendChild( stats.domElement );
+			// eventListner
+			window.addEventListener( 'resize', onWindowResize, false );
+			document.addEventListener('mousedown', on_document_mouse_down, false);
+				
+			var texture, material, plane;
+
+			texture = THREE.ImageUtils.loadTexture( "../src/img/0.png" );
+
+			// assuming you want the texture to repeat in both directions:
+			//texture.wrapS = THREE.RepeatWrapping; 
+			//texture.wrapT = THREE.RepeatWrapping;
+
+			// how many times to repeat in each direction; the default is (1,1),
+			//   which is probably why your example wasn't working
+			//texture.repeat.set( 4, 4 ); 
+
+			material = new THREE.MeshLambertMaterial({ map : texture });
+			plane = new THREE.Mesh(new THREE.PlaneGeometry(832, 416), material);
+			plane.material.side = THREE.DoubleSide;
+			plane.position.y = 100;
+
+			// rotation.z is rotation around the z-axis, measured in radians (rather than degrees)
+			// Math.PI = 180 degrees, Math.PI / 2 = 90 degrees, etc.
+			plane.rotation.z = 0;
+
+			//plane.translate(0,0,0);
+			scene.add( plane );
+			
+		}
+			function onWindowResize() {
+				camera.aspect = window.innerWidth / window.innerHeight;
+				camera.updateProjectionMatrix();
+
+				renderer.setSize( window.innerWidth, window.innerHeight );
+			}
+
+			function animate() {
+				requestAnimationFrame( animate );
+				controls.update(); // required if controls.enableDamping = true, or if controls.autoRotate = true
+				stats.update();
+				
+				render();
+			}
+
+			function render() {
+				renderer.render( scene, camera );
+			}			
+			function on_document_mouse_down(event) {
+			
+			}			
+		</script>
+	</body>
+</html>
