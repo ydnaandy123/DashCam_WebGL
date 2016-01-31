@@ -98,6 +98,8 @@
 			var root_helper_object_set=new THREE.Object3D();
 			var length=0;
 			
+			var pathPoint = [37.8009089,-122.4015393,37.8007345,-122.4015035,37.8005591,-122.4014674,37.8005591,-122.4014674,37.8004703,-122.4014492,37.8003431,-122.4014242,37.8002542,-122.4014067,37.8000854,-122.4013735,37.7999343,-122.4013438,37.7997654,-122.4013106,37.7995522,-122.4012687,37.8001654,-122.4013892,37.8000854,-122.4013735,37.7999343,-122.4013438,37.7997654,-122.4013106,37.7996588,-122.4012897,37.7995005,-122.4012583,37.7993939,-122.4012366];
+			
 			var Rt = [];			
 			var m0 = new THREE.Matrix4();
 			m0.set( 0.9968,    0.0796,    0.0020,   21.7831,
@@ -142,8 +144,8 @@
 			transLate.push(t3);
 			transLate.push(t4);
 			
-			var wX0, wY0, wZ0, earthR=20037508.34;
-			var x0=0, z0=0;
+			var wX0, wY0, wZ0, earthR = 6371000;
+			var x0=0, z0=0, earthRatio = 20037508.34;
 			
 			var panoNormal=[], panoPos=[], myCam=true;
 			
@@ -203,7 +205,7 @@
 				scene.add(root_street_view_set);				
 				scene.add(root_helper_object_set);
 				// demo			
-				for(var i=0;i<=pathPoint.length/2;i++){
+				for(var i=0;i<1;i++){
 					render_street_point_cloud(pathPoint[2*i], pathPoint[2*i+1],i);	
 				}
 				// gui interface
@@ -276,10 +278,10 @@
 				var root_street_view = new THREE.Object3D();
 				//World coordinate
 				var wX, wY, wZ, wR, wT;
-				wZ = earthR*Math.sin(lat * Math.PI / 180.0);
+				wY = earthR*Math.sin(lat * Math.PI / 180.0);
 				wR = earthR*Math.cos(lat * Math.PI / 180.0);
-				wX = wR*Math.cos(lon * Math.PI / 360.0);
-				wY = wR*Math.sin(lon * Math.PI / 360.0);
+				wZ = -wR*Math.cos(lon * Math.PI / 360.0);
+				wX = wR*Math.sin(lon * Math.PI / 360.0);
 				//console.log("world coor:", wX,wY,wZ,wR, earthR);
 				wT = new THREE.Vector3(wX, wY, wZ);
 				if(index==0){
@@ -287,13 +289,13 @@
 					wX = 0; wY = 0; wZ = 0;
 				}
 				else{
-					wX = wX - wX0; wY = wY - wY0; wZ = wZ - wZ0;
+					wX = wX - wX0; wY = wY - wY0; wZ = -wZ + wZ0;
 				}
 				//console.log("THREEJS coor:", wX,wY,wZ,wR);
 				
 				//
-				var xoffs = lon * earthR /180 - x0;
-				var zoffs = Math.log(Math.tan((90+lat) * Math.PI / 360)) / (Math.PI/180) * (earthR/180) - z0;
+				var xoffs = lon * earthRatio /180 - x0;
+				var zoffs = Math.log(Math.tan((90+lat) * Math.PI / 360)) / (Math.PI/180) * (earthRatio/180) - z0;
 				if(index==0){
 					x0 = xoffs; z0=zoffs;
 					xoffs = 0; zoffs = 0;
@@ -305,9 +307,9 @@
 					root_helper_object = new THREE.Object3D();
 					if (this.data.links.length > 0) {
 						for (var i = 0; i < this.data.links.length; ++i) {
-							if(index==1){
-								//console.log(this.data.links[i].heading);
-							}
+							//if(index==1){
+								console.log(this.data.links[i].heading);
+							//}
 							var helper_geometry_base = new THREE.Object3D();
 							var helper_shape = new THREE.Shape();
 							helper_shape.moveTo(0, 0);
@@ -329,9 +331,10 @@
 							root_helper_object.add(helper_geometry_base);				
 							root_helper_object_set.add(root_helper_object);
 						}
-					}					
+					}				
 					img_canvas_context = this.canvas.getContext('2d');
 					main_rotation = this.data.tiles.centerHeading;
+					console.log(main_rotation);
 					depth_loader.load(this.panoId);
 				};
 				//load depth
@@ -348,13 +351,13 @@
 						for (var x = 0; x < this.depthMap.width; ++x) {
 							var depth = parseFloat(this.depthMap.depthMap[y * this.depthMap.width + (this.depthMap.width - x)]);
 							if(depth>50)continue;
-							var lng = ((x / this.depthMap.width)) * 360.0 - 0.0;
+							var lng = ((x / this.depthMap.width)) * 360.0 - 180.0;
 							var pos = new THREE.Vector3();
 							pos.x = (r * Math.cos(lng * Math.PI / 180.0));
 							pos.y = (Math.sin(lat * Math.PI / 180.0));
 							pos.z = (r * Math.sin(lng * Math.PI / 180.0));
 							pos.multiplyScalar(depth);
-							pos.multiplyScalar(2.0);			
+							//pos.multiplyScalar(2.0);			
 							positions[3 * n + 0] = -(isNaN(pos.x) ? 0 : pos.x);
 							positions[3 * n + 1] = -(isNaN(pos.y) ? 0 : pos.y);
 							positions[3 * n + 2] = -(isNaN(pos.z) ? 0 : pos.z);
@@ -401,10 +404,30 @@
 					//root_street_view.position.x = zoffs;
 					//root_street_view.position.z = -xoffs;
 					
+					
 					root_street_view.position.x = wX;
 					root_street_view.position.y = wY;
 					root_street_view.position.z = wZ;
-					root_street_view.lookAt(wT);
+					//console.log(wX);
+					//root_street_view.lookAt(wT);					
+					//root_street_view.rotateOnAxis(new THREE.Vector3(1,0,0), Math.PI/2);
+					root_street_view.rotateOnAxis(new THREE.Vector3(0,1,0), 0 );
+					
+					var material = new THREE.LineBasicMaterial({
+						color: 0x0000ff
+					});		
+					var geometry = new THREE.Geometry();
+					geometry.vertices.push(
+						new THREE.Vector3( 0, 0, 0 ),
+						wT
+					);
+
+					var line = new THREE.Line( geometry, material );
+					line.scale.x = 50;
+					line.scale.y = 50;
+					line.scale.z = 50;
+					scene.add( line );			
+
 					
 					panoPos[index] = new THREE.Vector3(wX, wY, wZ);
 					panoNormal[index] = wT.normalize();

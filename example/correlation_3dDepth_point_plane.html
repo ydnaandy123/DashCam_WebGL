@@ -79,8 +79,8 @@
 		<script src="../libs/GSVPanoDepth.js-master/examples/js/jquery.base64.min.js" type="text/javascript"></script>
 		<script src="../libs/GSVPanoDepth.js-master/examples/js/zpipe.min.js" type="text/javascript"></script>		
 		<script src="../libs/GSVPanoDepth.js-master/examples/js/GSVPano.js" type="text/javascript"></script>
-		<script src="../libs/GSVPanoDepth.js-master/src/GSVPanoDepth.js" type="text/javascript"></script>		
-
+		<script src="../libs/GSVPanoDepth.js-master/src/GSVPanoDepth.js" type="text/javascript"></script>	
+		
 		<script>
 
 			if ( ! Detector.webgl ) Detector.addGetWebGLMessage();
@@ -90,7 +90,7 @@
 			var svs = new google.maps.StreetViewService();
 			var root_object = 0, root_helper_object = 0;
 			var show_pano = false, show_depth = false;
-			var point_cloud_material, point_size = 0.7;
+			var point_cloud_material, point_size = 0.1;
 			var traslate_x = 0, traslate_z = 0, scale=1;
 			var mycanvas;
 			
@@ -198,9 +198,14 @@
 				this.distance = pd;				
 				this.color = [Math.random(), Math.random(), Math.random()];				
 				
+				this.indices = [];
+				
 				this.positions = [];
+				this.colors = [];				
 			}
 			var myPlanes =[];
+			var pI;
+			
 			function render_street_point_cloud(lat, lon, index){
 				var img_canvas_context = 0;
 				var main_rotation = 0;
@@ -274,48 +279,45 @@
 							var color_canvas_x = parseInt(normalized_x * img_canvas_context.canvas.width);
 							var color_canvas_y = parseInt(normalized_y * img_canvas_context.canvas.height);
 							var color_index = color_canvas_y * img_canvas_context.canvas.width * 4 + color_canvas_x * 4;
-							//colors[3 * n + 0] = (color_data[color_index + 0]) / 255.0;
-							//colors[3 * n + 1] = (color_data[color_index + 1]) / 255.0;
-							//colors[3 * n + 2] = (color_data[color_index + 2]) / 255.0;
+							colors[3 * n + 0] = (color_data[color_index + 0]) / 255.0;
+							colors[3 * n + 1] = (color_data[color_index + 1]) / 255.0;
+							colors[3 * n + 2] = (color_data[color_index + 2]) / 255.0;
 							
 							var planeIndex = this.indices[y*this.depthMap.width + x];
 							var planeN = new THREE.Vector3(this.planes[planeIndex].n[0], this.planes[planeIndex].n[1], this.planes[planeIndex].n[2]);
 							var planeD = this.planes[planeIndex].d;
 							var same = false;
-							var pI;
 							for(var j=0; j<myPlanes.length; j++){
 								if(isNaN(planeN.angleTo(myPlanes[j].normal))){
+									// discard
 									j = this.planes.length;
 									same = true;
 									break;
 								}
-								else if(planeN.angleTo(myPlanes[j].normal)<0.8 && planeD - myPlanes[j].distance<1.5){
+								else if(Math.abs(planeN.angleTo(myPlanes[j].normal))<1.2 && Math.abs(planeD - myPlanes[j].distance)<0.8){
+								//else if(planeN.equals(myPlanes[j].normal)){
 									if(planeN.angleTo(new THREE.Vector3(0,0,-1)) < 0.5) pI = j;
+									myPlanes[j].indices.push(n)
 									same = true;
 									break;
 								}
 							}
 							if(!same){
 							    var plane = new myPlane(planeN, planeD);
+								plane.indices.push(n);
 								myPlanes.push(plane);
 							}
-							if(j != this.planes.length){
+							if(j==pI){
 								//geometryP.vertices.push( new THREE.Vector3(positions[3 * n + 0],
 								//positions[3 * n + 1], positions[3 * n + 2]) );
 								colors[3 * n + 0] = myPlanes[j].color[0] ;
 								colors[3 * n + 1] = myPlanes[j].color[1] ;
 								colors[3 * n + 2] = myPlanes[j].color[2] ;	
 							}
-							else{
-								colors[3 * n + 0] = (color_data[color_index + 0]) / 255.0;
-								colors[3 * n + 1] = (color_data[color_index + 1]) / 255.0;
-								colors[3 * n + 2] = (color_data[color_index + 2]) / 255.0;
-							
-							}
 							n++;
 						}
-					}
-					//console.log(myPlanes[7]);
+					}					
+					//console.log(myPlanes.length, this.planes.length);
 					geometry.addAttribute('position', new THREE.BufferAttribute(positions, 3));
 					geometry.addAttribute('color', new THREE.BufferAttribute(colors, 3));
 					geometry.computeBoundingBox();
@@ -339,16 +341,79 @@
 					
 					mesh = new THREE.Mesh( geometryP, material );
 					root_street_view.add( mesh );	*/	
+					
+					for(var j=pI; j<=pI; j++){
+						var geometry = new THREE.BufferGeometry();
+						var num_points = myPlanes[j].indices.length;
+						var planepositions = new Float32Array(num_points * 3);
+						var planecolors = new Float32Array(num_points * 3);
+						var geometryP = new THREE.Geometry();
+						
+						for(np=0; np<num_points; np++){
+							planepositions[3 * np + 0] = positions[3 * myPlanes[j].indices[np] + 0];
+							planepositions[3 * np + 1] = positions[3 * myPlanes[j].indices[np] + 1];
+							planepositions[3 * np + 2] = positions[3 * myPlanes[j].indices[np] + 2];
+							
+							planecolors[3 * np + 0] = colors[3 * myPlanes[j].indices[np] + 0];
+							planecolors[3 * np + 1] = colors[3 * myPlanes[j].indices[np] + 1];
+							planecolors[3 * np + 2] = colors[3 * myPlanes[j].indices[np] + 2];
+							
+							geometryP.vertices.push( new THREE.Vector3(planepositions[3 * np + 0],
+							planepositions[3 * np + 1], planepositions[3 * np + 2]) );						
+						}
+						
+						geometry.addAttribute('position', new THREE.BufferAttribute(planepositions, 3));
+						geometry.addAttribute('color', new THREE.BufferAttribute(planecolors, 3));
+						geometry.computeBoundingBox();	
 
-					var bbox = new THREE.BoundingBoxHelper( pointcloud, new THREE.Color(0xFF9900));
-					bbox.visible = false;
-					bbox.update();
-					root_street_view.add( bbox );				
+						/*
+						var holes = [];
+						geometryP.mergeVertices();
+						triangles = THREE.Shape.Utils.triangulateShape ( geometryP.vertices, holes );
+
+						for( var i = 0; i < triangles.length; i++ ){
+							geometryP.faces.push( new THREE.Face3( triangles[i][0], triangles[i][1], triangles[i][2] ));
+						}					
+						
+						// material
+						var material = new THREE.LineBasicMaterial( { color: 0xffffff, linewidth: 1 } );
+						
+						mesh = new THREE.Mesh( geometryP, material );
+						root_street_view.add( mesh );	*/
+
+						
+						
+						var planecloud = new THREE.Points(geometry, point_cloud_material);
+						root_street_view.add(planecloud);	
+						
+						
+						var bbox = new THREE.BoundingBoxHelper( planecloud, new THREE.Color(0xFF9900));
+						bbox.visible = false;
+						bbox.update();
+						root_street_view.add( bbox );				
+						
+						var boxHelper = new THREE.BoxHelper( bbox ); // to remove the diagonals
+						boxHelper.material.color.set( 0xff9000 );
+						root_street_view.add( boxHelper );
+						
+						var normal = myPlanes[j].normal.clone();
+						var max = [geometry.boundingBox.max.x, geometry.boundingBox.max.y, geometry.boundingBox.max.z];
+						var min = [geometry.boundingBox.min.x, geometry.boundingBox.min.y, geometry.boundingBox.min.z];
+						if(1){
+							console.log(normal, boxHelper);
+							var texture, material, plane;
+							texture = THREE.ImageUtils.loadTexture( "../src/img/0.png" );
+							material = new THREE.MeshLambertMaterial({ map : texture });
+							plane = new THREE.Mesh(new THREE.PlaneGeometry(Math.abs(max[0] - min[0]), Math.abs(max[1] - min[1])), material);
+							//plane.lookAt(normal);
+							plane.position.addVectors(geometry.boundingBox.max, geometry.boundingBox.min).divideScalar(2);
+							//plane.lookAt(new THREE.Vector3(-1,0,0));
+							plane.material.side = THREE.DoubleSide;	
+							root_street_view.add(plane);
+						}
+					}
 					
-					var boxHelper = new THREE.BoxHelper( bbox ); // to remove the diagonals
-					boxHelper.material.color.set( 0xff9000 );
-					root_street_view.add( boxHelper );
-					
+					/*
 					var geometryM = new THREE.SphereGeometry( 3, 32, 32 );
 					var material = new THREE.MeshBasicMaterial( {color: 0xffff00} );
 					var sphere = new THREE.Mesh( geometryM, material );
@@ -360,17 +425,38 @@
 					var material = new THREE.MeshBasicMaterial( {color: 0xffff00} );
 					var sphere = new THREE.Mesh( geometryB, material );
 					sphere.position.copy(geometry.boundingBox.max);
-					root_street_view.add( sphere );	
+					root_street_view.add( sphere );	*/
 
 					
+					root_street_view.rotation.y = main_rotation * Math.PI / 180.0;
 					root_street_view.position.x = wX;
 					root_street_view.position.y = wY;
 					root_street_view.position.z = wZ;
-					root_street_view.lookAt(wT);						
+					//root_street_view.lookAt(wT);
+					//root_street_view.rotateOnAxis(new THREE.Vector3(1,0,0), Math.PI/2);
+					root_street_view.lookAt(wT);
+					//console.log(wT.normalize());	
+
+					/*
+					var material = new THREE.LineBasicMaterial({
+						color: 0x0000ff
+					});		
+					var geometry = new THREE.Geometry();
+					geometry.vertices.push(
+						new THREE.Vector3( 0, 0, 0 ),
+						wT
+					);
+
+					var line = new THREE.Line( geometry, material );
+					line.scale.x = 50;
+					line.scale.y = 50;
+					line.scale.z = 50;
+					console.log(line);
+					scene.add( line );*/					
 					
 				}
 				root_street_view_set.add(root_street_view);
-				if(index+1<5){
+				if(index+1<0){
 					index++;
 					render_street_point_cloud(pathPoint[2*index], pathPoint[2*index+1],index);	
 				}
