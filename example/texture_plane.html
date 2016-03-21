@@ -294,7 +294,7 @@
 									same = true;
 									break;
 								}
-								else if(Math.abs(planeN.angleTo(myPlanes[j].normal))<3.2 && Math.abs(planeD - myPlanes[j].distance)<5.8){
+								else if(Math.abs(planeN.angleTo(myPlanes[j].normal))<1.2 && Math.abs(planeD - myPlanes[j].distance)<0.8){
 								//else if(planeN.equals(myPlanes[j].normal)){
 									if(planeN.angleTo(new THREE.Vector3(0,0,-1)) < 0.5) pI = j;
 									myPlanes[j].indices.push(n)
@@ -342,7 +342,7 @@
 					mesh = new THREE.Mesh( geometryP, material );
 					root_street_view.add( mesh );	*/	
 					
-					for(var j=0; j<=myPlanes.length; j++){
+					for(var j=pI; j<=pI; j++){
 						var geometry = new THREE.BufferGeometry();
 						var num_points = myPlanes[j].indices.length;
 						var planepositions = new Float32Array(num_points * 3);
@@ -395,7 +395,7 @@
 						var boxHelper = new THREE.BoxHelper( bbox ); // to remove the diagonals
 						boxHelper.material.color.set( 0xff9000 );
 						root_street_view.add( boxHelper );
-						/*
+						
 						var normal = myPlanes[j].normal.clone();
 						var max = [geometry.boundingBox.max.x, geometry.boundingBox.max.y, geometry.boundingBox.max.z];
 						var min = [geometry.boundingBox.min.x, geometry.boundingBox.min.y, geometry.boundingBox.min.z];
@@ -410,7 +410,7 @@
 							//plane.lookAt(new THREE.Vector3(-1,0,0));
 							plane.material.side = THREE.DoubleSide;	
 							root_street_view.add(plane);
-						}*/
+						}
 					}
 					
 					/*
@@ -456,7 +456,7 @@
 					
 				}
 				root_street_view_set.add(root_street_view);
-				if(index+1<3){
+				if(index+1<0){
 					index++;
 					render_street_point_cloud(pathPoint[2*index], pathPoint[2*index+1],index);	
 				}

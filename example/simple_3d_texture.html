@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html lang="en">
 	<head>
-		<title>simple_3d_reconstruct</title>
+		<title>simple_3d_plane</title>
 		<meta charset="utf-8">
 		<meta name="viewport" content="width=device-width, user-scalable=no, minimum-scale=1.0, maximum-scale=1.0">
 		<style>
@@ -27,13 +27,13 @@
 				pointer-events:none;
 				border:2px black solid;
 			}
-			#depth_container {
+			#ground_container {
 				position:absolute;
 				left:8px;
 				top:80px;
 				width:512px;
 				height:256px;
-				z-index:30;
+				z-index:40;
 				display:block;
 				pointer-events:none;
 				border:2px black solid;
@@ -51,9 +51,8 @@
 
 	<body>
 		<div id="container" style="position:absolute; top:0px"></div>
-		<div id="pano_container" class="hide"></div>
-		<div id="depth_ori_container" class="hide"></div>
-		<div id="depth_container" class="hide"></div>
+		<div id="pano_container" class="hide"></div>	
+		<div id="ground_container" class="hide"></div>
 		
 		<script src="../src/VideoSource/pathPoint.js"></script>
 		
@@ -80,28 +79,27 @@
 			//Macapa,+AP,+¤Ú¦è
 			//var pathPoint = [0.0324526,-51.0540268,0.0324385,-51.0538503,0.032426,-51.0536955,0.0324132,-51.0535362,0.0324028,-51.0534036,0.0324558,-51.0534274,0.0325456,-51.053422,0.0326443,-51.053416,0.032743,-51.05341,0.0329202,-51.0533991,0.0330548,-51.0533907,0.0332523,-51.0533784,0.033351,-51.0533722,0.0334596,-51.0533698,0.0335965,-51.0533633,0.0337711,-51.053345,0.0338696,-51.0533357,0.0339681,-51.0533263,0.0340576,-51.0533178,0.0341471,-51.0533093,0.0342367,-51.0533008];
 			//Alta, Finnmark, Norge
-			var pathPoint = [69.9651823,23.27458,69.9650853,23.2747391,69.9650992,23.2748066,69.9651455,23.2750316,69.9652377,23.2754752,69.9652822,23.275689,69.9653305,23.2759206,69.9654362,23.2762605,69.9655197,23.2761058,69.9656109,23.2759371,69.9657532,23.2756268,69.9659061,23.2752685,69.9660671,23.2750026,69.9662141,23.2747421,69.9662105,23.2742806,69.9661245,23.2738803,69.9660845,23.273667,69.966048,23.2734562,69.9659841,23.2732486,69.9659011,23.273342,69.9657629,23.2735705,69.965692,23.2737075,69.9656183,23.2738,69.9655278,23.2740164,69.9654417,23.2741487,69.9653604,23.2742898,69.9652699,23.2744373];
+			//var pathPoint = [69.9651823,23.27458,69.9650853,23.2747391,69.9650992,23.2748066,69.9651455,23.2750316,69.9652377,23.2754752,69.9652822,23.275689,69.9653305,23.2759206,69.9654362,23.2762605,69.9655197,23.2761058,69.9656109,23.2759371,69.9657532,23.2756268,69.9659061,23.2752685,69.9660671,23.2750026,69.9662141,23.2747421,69.9662105,23.2742806,69.9661245,23.2738803,69.9660845,23.273667,69.966048,23.2734562,69.9659841,23.2732486,69.9659011,23.273342,69.9657629,23.2735705,69.965692,23.2737075,69.9656183,23.2738,69.9655278,23.2740164,69.9654417,23.2741487,69.9653604,23.2742898,69.9652699,23.2744373];
 			//Brighton Parade Southport, Queensland
 			//var pathPoint = [-27.9779648,153.4160037,-27.978041,153.4158222,-27.9780782,153.4157334,-27.9781277,153.4156131,-27.9781771,153.4154975,-27.9782212,153.4153945,-27.9782604,153.4152917,-27.9782988,153.4151913,-27.9783499,153.4150954,-27.978401,153.4149995,-27.9784791,153.4148724,-27.9785428,153.4147886,-27.978688,153.4146426,-27.9788502,153.4145254,-27.9789304,153.4144834,-27.9790643,153.4144352,-27.9791919,153.4144129,-27.9793457,153.4144202,-27.9794594,153.4144285,-27.9795749,153.414437,-27.9796878,153.4144453,-27.9798556,153.4144585,-27.9800352,153.4144477,-27.9802593,153.4144176,-27.9804996,153.4143779] 
-			//var pathPoint = [37.8009089,-122.4015393,37.8007345,-122.4015035,37.8005591,-122.4014674,37.8005591,-122.4014674,37.8004703,-122.4014492,37.8003431,-122.4014242,37.8002542,-122.4014067,37.8000854,-122.4013735,37.7999343,-122.4013438,37.7997654,-122.4013106,37.7995522,-122.4012687,37.8001654,-122.4013892,37.8000854,-122.4013735,37.7999343,-122.4013438,37.7997654,-122.4013106,37.7996588,-122.4012897,37.7995005,-122.4012583,37.7993939,-122.4012366];
-			//var pathPoint = [25.0415318,121.4647132];
+
 			//THREE.js
 			var stats;
 			var camera, controls, scene, renderer;
 			//GOOGLE
 			var svs = new google.maps.StreetViewService();
 			//DAT
-			var show_pano = false, show_depth = false;
+			var show_pano = false, show_ground = false;
 			//POINT CLOUD
 			var point_cloud_material, point_size = 0.1;			
-			var root_street_view_set = new THREE.Object3D();
+			var root_street_view_set = new THREE.Object3D();	
+			//----- TEXTURE -----
+			var panoColorData = [];
 			//----- POINT CLOUD COMPOSE -----	
-			var method = false;
-			var Cavallo = [], MineP = [], MineN = [];
-			//Marco Cavallo's
-			var x0=0, z0=0, earthRatio = 20037508.34;				
 			//Mine
 			var wX0, wY0, wZ0, earthR = 6371000;
+			//Texture
+			var mycanvas;
 			//DEMO
 			
 			init();
@@ -164,51 +162,24 @@
 				gui.add(this, "point_size", 0.1, 2.0).name("Point size").onChange(function (value) {
 					point_cloud_material.size = point_size;
 				});	
-					/*		
-				gui.add(this, "scale", 0, 1).name("Scale").onChange(function (value) {
-					root_helper_object_set.scale.set(scale,1,scale);
-					root_street_view_set.scale.set(scale,scale,scale);
-				});*/				
-				gui.add(this, "method",{Mine: true, Cavallo: false}).onChange(function (value){
-					console.log(value, root_street_view_set);
-					if(value){				
-						for(var i=0; i<root_street_view_set.length; i++){
-							root_street_view_set.child[0].lookAt(wT);
-							root_street_view.rotateOnAxis(new THREE.Vector3(1,0,0), Math.PI/2);
-							root_street_view.position.x = wX;
-							root_street_view.position.y = wY;
-							root_street_view.position.z = wZ;							
-						}
-					}
-					else{				
-						for(var i=0; i<root_street_view_set.children.length; i++){
-							root_street_view_set.children[i].rotation.x = 0;	
-							root_street_view_set.children[i].rotation.y = 0;	
-							root_street_view_set.children[i].rotation.z = 0;	
-							root_street_view_set.children[i].position.x = Cavallo[i].x;
-							root_street_view_set.children[i].position.y = Cavallo[i].y;
-							root_street_view_set.children[i].position.z = -Cavallo[i].z;				
-						}	
-					}
-				});
 				gui.add(this, "show_pano", false).name("Show pano image").onChange(function (value) {
 					if (value)
 						document.getElementById("pano_container").className = "show";
 					else
 						document.getElementById("pano_container").className = "hide";
 				});
-				gui.add(this, "show_depth", false).name("Show depth map").onChange(function (value) {
+				gui.add(this, "show_ground", false).name("Show ground").onChange(function (value) {
 					if (value)
-						document.getElementById("depth_container").className = "show";
+						document.getElementById("ground_container").className = "show";
 					else
-						document.getElementById("depth_container").className = "hide";
-				});				
+						document.getElementById("ground_container").className = "hide";
+				});					
 				//----- EVENT LISTENER -----
 				window.addEventListener( 'resize', onWindowResize, false );
 				document.addEventListener('mousedown', on_document_mouse_down, false);
 				
 				//----- DEMO -----		
-				for(var i=0;i<=pathPoint.length/2;i++){
+				for(var i=0;i<=0;i++){
 					render_street_point_cloud(pathPoint[2*i], pathPoint[2*i+1],i);	
 				}
 			}		
@@ -222,6 +193,7 @@
 				});
 				var depth_loader = new GSVPANO.PanoDepthLoader();	
 				var root_street_view = new THREE.Object3D();	
+				var street_view_heading = new THREE.Object3D();
 				//World Axis to THREE.js Axis
 				var wX, wY, wZ, wR, wT;
 				wR = earthR*Math.cos(lat * Math.PI / 180.0);
@@ -235,13 +207,6 @@
 				}
 				else{
 					wX = wX - wX0; wY = wY - wY0; wZ = wZ - wZ0;
-				}				
-				//Marco Cavallo's Projection
-				var xoffs = lon * earthRatio /180 - x0;
-				var zoffs = Math.log(Math.tan((90+lat) * Math.PI / 360)) / (Math.PI/180) * (earthRatio/180) - z0;
-				if(index==0){
-					x0 = xoffs; z0=zoffs;
-					xoffs = 0; zoffs = 0;
 				}				
 				//----- LOAD PANO -----
 				pano_loader.load(new google.maps.LatLng(lat,lon));
@@ -285,26 +250,17 @@
 				
 				//----- LOAD DEPTH -----
 				depth_loader.onDepthLoad = function () {
-					// Depth Map
-					var canvas = document.createElement("canvas");
+					// Ground Map
+					var color_data = img_canvas_context.getImageData(0, 0, img_canvas_context.canvas.width, img_canvas_context.canvas.height).data;
+					panoColorData[index] = color_data;
+					/*var canvas = document.createElement("canvas");
 					var context = canvas.getContext('2d');
 					canvas.setAttribute('width', this.depthMap.width);
 					canvas.setAttribute('height', this.depthMap.height);
 					var image = context.getImageData(0, 0, this.depthMap.width, this.depthMap.height);
-					for (var y = 0; y < this.depthMap.height; ++y) {
-						for (var x = 0; x < this.depthMap.width; ++x) {
-							var col = this.depthMap.depthMap[y * this.depthMap.width + x] / 50 * 255;
-							image.data[4 * (y * this.depthMap.width + x) + 0] = col;
-							image.data[4 * (y * this.depthMap.width + x) + 1] = col;
-							image.data[4 * (y * this.depthMap.width + x) + 2] = col;
-							image.data[4 * (y * this.depthMap.width + x) + 3] = 255;
-						}
-					}
-					context.putImageData(image, 0, 0);
-					var depth_container = document.getElementById('depth_container');
-					depth_container.appendChild(canvas);					
 					// Create Point Cloud
 					var geometry = new THREE.BufferGeometry();
+					var geometryTexture = new THREE.BufferGeometry();
 					var num_points = this.depthMap.width * this.depthMap.height;
 					var positions = new Float32Array(num_points * 3);
 					var colors = new Float32Array(num_points * 3);
@@ -312,75 +268,202 @@
 					var n = 0;						
 					for (var y = 0; y < this.depthMap.height; ++y) {
 						for (var x = 0; x < this.depthMap.width; ++x) {
-							// Panoromic to Spherical
-							var lat = -(y / this.depthMap.height) * 180.0 + 90.0;
-							var lng = (x / this.depthMap.width) * 360.0 - 180.0;
-							// Spherical Axis to THREE.js Axis
-							var pos = new THREE.Vector3();
-							pos.y = Math.sin(lat * Math.PI / 180.0);							
-							var r = Math.cos(lat * Math.PI / 180.0);
-							pos.x = (r * Math.sin(lng * Math.PI / 180.0));
-							pos.z = -(r * Math.cos(lng * Math.PI / 180.0)); // IMPORTANT!!!!
-							// Multiple by Depth
-							var depth = parseFloat(this.depthMap.depthMap[y * this.depthMap.width + x]);
-							if(depth>50) continue;
-							pos.multiplyScalar(depth);
-							// Store Position and Color of Each Point
-							positions[3 * n + 0] = isNaN(pos.x) ? 0 : pos.x;
-							positions[3 * n + 1] = isNaN(pos.y) ? 0 : pos.y;
-							positions[3 * n + 2] = isNaN(pos.z) ? 0 : pos.z;
-							var color_canvas_x = parseInt((x / this.depthMap.width) * img_canvas_context.canvas.width);
-							var color_canvas_y = parseInt((y / this.depthMap.height) * img_canvas_context.canvas.height);
-							var color_index = color_canvas_y * img_canvas_context.canvas.width * 4 + color_canvas_x * 4;
-							colors[3 * n + 0] = (color_data[color_index + 0]) / 255.0;
-							colors[3 * n + 1] = (color_data[color_index + 1]) / 255.0;
-							colors[3 * n + 2] = (color_data[color_index + 2]) / 255.0;
+							// Plane
+							var planeIndex = this._data.indices[y*this.depthMap.width + x];
+							var planeN = new THREE.Vector3(this._data.planes[planeIndex].n[0], this._data.planes[planeIndex].n[1], this._data.planes[planeIndex].n[2]);
+							var planeD = this._data.planes[planeIndex].d;
+							if(planeN.angleTo(new THREE.Vector3(0,0,-1)) < 0.5){	
+							//if(true){
+								// Panoromic to Spherical
+								var lat = -(y / this.depthMap.height) * 180.0 + 90.0;
+								var lng = (x / this.depthMap.width) * 360.0 - 180.0;
+								// Spherical Axis to THREE.js Axis
+								var pos = new THREE.Vector3();
+								pos.y = Math.sin(lat * Math.PI / 180.0);							
+								var r = Math.cos(lat * Math.PI / 180.0);
+								pos.x = (r * Math.sin(lng * Math.PI / 180.0));
+								pos.z = -(r * Math.cos(lng * Math.PI / 180.0)); // IMPORTANT!!!!
+								// Multiple by Depth
+								var depth = parseFloat(this.depthMap.depthMap[y * this.depthMap.width + x]);
+								//if(depth>50) continue;
+								pos.multiplyScalar(depth);
+								// Store Position and Color of Each Point
+								positions[3 * n + 0] = isNaN(pos.x) ? 0 : pos.x;
+								positions[3 * n + 1] = isNaN(pos.y) ? 0 : pos.y;
+								positions[3 * n + 2] = isNaN(pos.z) ? 0 : pos.z;
+								var color_canvas_x = parseInt((x / this.depthMap.width) * img_canvas_context.canvas.width);
+								var color_canvas_y = parseInt((y / this.depthMap.height) * img_canvas_context.canvas.height);
+								var color_index = color_canvas_y * img_canvas_context.canvas.width * 4 + color_canvas_x * 4;							
+								colors[3 * n + 0] = (color_data[color_index + 0]) / 255.0;
+								colors[3 * n + 1] = (color_data[color_index + 1]) / 255.0;
+								colors[3 * n + 2] = (color_data[color_index + 2]) / 255.0;	
+								// Ground texture
+								image.data[4 * (y * this.depthMap.width + x) + 0] = color_data[color_index + 0];
+								image.data[4 * (y * this.depthMap.width + x) + 1] = color_data[color_index + 1];
+								image.data[4 * (y * this.depthMap.width + x) + 2] = color_data[color_index + 2];
+								image.data[4 * (y * this.depthMap.width + x) + 3] = 255;
+							}							
 							n++;
 						}
-					}				
+					}						
+					// Ground texture
+					context.putImageData(image, 0, 0);
+					var groundImage = image;
+					var ground_container = document.getElementById('ground_container');
+					ground_container.appendChild(canvas);
+					// Point Cloud geometry
 					geometry.addAttribute('position', new THREE.BufferAttribute(positions, 3));
 					geometry.addAttribute('color', new THREE.BufferAttribute(colors, 3));
 					geometry.computeBoundingBox();
 					var pointcloud = new THREE.Points(geometry, point_cloud_material);
-					pointcloud.rotation.y = -main_rotation * Math.PI / 180.0;	
-					root_street_view.add(pointcloud);				
-					//----- Marco Cavallo's Way -----
-					if(method){
-						root_street_view.position.x = xoffs;
-						root_street_view.position.z = -zoffs;	
-						Cavallo[index] = new THREE.Vector3(xoffs, 0, xoffs);	
-						console.log(Cavallo[index]);
-					}
+					street_view_heading.add(pointcloud);*/
+					
+					
+					// grid mesh
+					/*var geometry = new THREE.PlaneGeometry( 20, 20, 250, 250);
+					var material = new THREE.MeshLambertMaterial( { color: 0xffffff, shading: THREE.FlatShading, vertexColors: THREE.VertexColors } );
+					
+					geometry.rotateX(-Math.PI/2);					
+					geometry.translate(0,-2.5,0);					
+					
+					var plane = new THREE.Mesh( geometry, material );
+					console.log(plane.matrix,geometry);
+					// point color mapping
+					console.log(img_canvas_context.canvas.height,img_canvas_context.canvas.width)
+					for ( var i = 0; i < geometry.vertices.length; i ++ ) {
+						var vec = geometry.vertices[i].clone();
+							
+						lng = Math.atan(-vec.x / vec.z) / Math.PI * 180;
+						if(vec.x>=0 && vec.z>=0) lng = lng + 180;							
+						else if(vec.x<=0 && vec.z>=0) lng = lng - 180;
+						r = new THREE.Vector3(vec.x, 0, vec.z).length();
+						lat = Math.atan(vec.y / r) / Math.PI * 180;
+						
+						var color_canvas_x = parseInt(((lng + 180) / 360) * img_canvas_context.canvas.width);
+						var color_canvas_y = parseInt((-(lat - 90) / 180) * img_canvas_context.canvas.height);
+						var color_index = color_canvas_y * img_canvas_context.canvas.width * 4 + color_canvas_x * 4;
+						geometry.colors[i] = new THREE.Color( (color_data[color_index + 0]) / 255.0, (color_data[color_index + 1]) / 255.0, (color_data[color_index + 2]) / 255.0 );
+						
+					}	
+					// face color
+					var faceIndices = [ 'a', 'b', 'c' ];
+					for ( var i = 0; i < geometry.faces.length; i ++ ) {
+						f  = geometry.faces[ i ];
+						for( var j = 0; j < 3; j++ ) {
+							vertexIndex = f[ faceIndices[ j ] ];
+							//p = geometry.vertices[ vertexIndex ];
+							//color = new THREE.Color( 0xffffff *Math.random() );
+							//color.setHSL( ( p.y / radius + 1 ) / 2, 1.0, 0.5 );
+							f.vertexColors[ j ] = geometry.colors[vertexIndex];
+						}
+					}					
+					street_view_heading.add( plane );	*/
+					
+					street_view_heading.rotation.y = -main_rotation * Math.PI / 180.0;	
+					root_street_view.add(street_view_heading);
 					//----- My Way -----
+					root_street_view.lookAt(wT);
+					root_street_view.rotateOnAxis(new THREE.Vector3(1,0,0), Math.PI/2);
+					root_street_view.position.x = wX;
+					root_street_view.position.y = wY;
+					root_street_view.position.z = wZ;
+					console.log(index);
+					if(index==0){
+						var dir = wT.clone().normalize().multiplyScalar(50);
+						camera.position.set(dir.x, dir.y, dir.z);
+						camera.lookAt(0.0, 0.0, 0.0);
+					}					
+					if(index+1<5){
+						index++;
+						render_street_point_cloud(pathPoint[2*index], pathPoint[2*index+1],index);	
+					}
 					else{
-						root_street_view.lookAt(wT);
-						root_street_view.rotateOnAxis(new THREE.Vector3(1,0,0), Math.PI/2);
-						root_street_view.position.x = wX;
-						root_street_view.position.y = wY;
-						root_street_view.position.z = wZ;
-						MineP[index] = new THREE.Vector3(wX, wY, wZ);	
-						MineN[index] = wT;
-						// Draw Normal
-						/*
+						//var geometry = new THREE.PlaneGeometry( 20, 60, 150, 450);
+						var geometry = new THREE.PlaneGeometry( 20, 60, 100, 200);
+						var material = new THREE.MeshLambertMaterial( { color: 0xffffff, shading: THREE.FlatShading, vertexColors: THREE.VertexColors } );
+						
+						//geometry.rotateX(-Math.PI/2);					
+						//geometry.lookAt(wT);			
+						//geometry.translate(0,-2.5,0);		
+						//geometry.rotateX(Math.PI/2);
+						var plane = new THREE.Mesh( geometry, material );	
+						//plane.rotateOnAxis(new THREE.Vector3(1,0,0), -Math.PI/2);
+												
+						plane.lookAt(wT);
+						//plane.rotateOnAxis(wT.clone().normalize(), -main_rotation * Math.PI / 180.0);
+						plane.rotateOnAxis(new THREE.Vector3(0,0,1), -main_rotation * Math.PI / 180.0 );
+						//plane.rotateOnAxis(new THREE.Vector3(1,0,0), Math.PI/2);
+						
+						plane.updateMatrix();
+						var matrix = [];
+						for(var m=0; m<4; m++){
+							var array = [];
+							for(n=0; n<3; n++){
+								array[n] = plane.matrix.elements[m*4 + n];
+							}
+							matrix[m] = array;
+						}
+						console.log(matrix);
+						
+						
+						console.log(geometry.vertices[0], plane);
+						console.log(geometry.vertices[0].clone().applyProjection(plane.matrix));
+						//console.log(geometry.vertices[0].clone().applyAxisAngle(wT.clone().normalize(), -main_rotation * Math.PI / 180.0));
+						
 						var material = new THREE.LineBasicMaterial({
 							color: 0x0000ff
-						});		
-						var geometry = new THREE.Geometry();
-						geometry.vertices.push(
+						});
+						var geometryL = new THREE.Geometry();
+						geometryL.vertices.push(
 							new THREE.Vector3( 0, 0, 0 ),
-							new THREE.Vector3( 0, -1, 0 )
+							wT
 						);
-						var line = new THREE.Line( geometry, material );
-						line.scale.x = 50; line.scale.y = 50; line.scale.z = 50;
-						root_street_view.add( line );	*/
-						if(index==0){
-							var dir = wT.clone().normalize().multiplyScalar(50);
-							camera.position.set(dir.x, dir.y, dir.z);
-							camera.lookAt(0.0, 0.0, 0.0);
-						}					
-					}
+						var line = new THREE.Line( geometryL, material );
+						scene.add( line );					
+						
+
+						for ( var i = 0; i < geometry.vertices.length; i ++ ) {
+							//var vec = geometry.vertices[i].clone().applyAxisAngle(wT.clone().normalize(), -main_rotation * Math.PI / 180.0);
+							var vec = geometry.vertices[i].clone();//.applyProjection(plane.matrix);
+															
+							lng = Math.atan(-vec.x / vec.z) / Math.PI * 180;
+							if(vec.x>=0 && vec.z>=0) lng = lng + 180;							
+							else if(vec.x<=0 && vec.z>=0) lng = lng - 180;
+							r = new THREE.Vector3(vec.x, 0, vec.z).length();
+							lat = Math.atan(vec.y / r) / Math.PI * 180;
+							
+							var color_canvas_x = parseInt(((lng + 180) / 360) * img_canvas_context.canvas.width);
+							var color_canvas_y = parseInt((-(lat - 90) / 180) * img_canvas_context.canvas.height);
+							var color_index = color_canvas_y * img_canvas_context.canvas.width * 4 + color_canvas_x * 4;
+							
+							color_data = panoColorData[0];
+							geometry.colors[i] = new THREE.Color( (color_data[color_index + 0]) / 255.0, (color_data[color_index + 1]) / 255.0, (color_data[color_index + 2]) / 255.0 );
+							
+						}	
+						// face color
+						var faceIndices = [ 'a', 'b', 'c' ];
+						for ( var i = 0; i < geometry.faces.length; i ++ ) {
+							f  = geometry.faces[ i ];
+							for( var j = 0; j < 3; j++ ) {
+								vertexIndex = f[ faceIndices[ j ] ];
+								//p = geometry.vertices[ vertexIndex ];
+								//color = new THREE.Color( 0xffffff *Math.random() );
+								//color.setHSL( ( p.y / radius + 1 ) / 2, 1.0, 0.5 );
+								f.vertexColors[ j ] = geometry.colors[vertexIndex];
+							}
+						}														
+						scene.add(plane)
+						
+						var bbox = new THREE.BoundingBoxHelper( root_street_view_set, new THREE.Color(0xFF9900));
+						bbox.visible = false;
+						bbox.update();
+						//root_street_view.add( bbox );	
+						var boxHelper = new THREE.BoxHelper( bbox ); // to remove the diagonals
+						boxHelper.material.color.set( 0xff9000 );
+						scene.add( boxHelper );						
+					}					
 				}
-				root_street_view_set.add(root_street_view);
+				root_street_view_set.add(root_street_view);	
 			}			
 
 			function onWindowResize() {

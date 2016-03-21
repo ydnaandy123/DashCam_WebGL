@@ -1,0 +1,220 @@
+<!DOCTYPE HTML>
+<html lang="en">
+	<head>
+		<meta charset="utf-8">
+		<script src="../libs/mrdoob-three.js-5c6ec4a/examples/../build/three.min.js"></script>
+		<script src="../libs/mrdoob-three.js-5c6ec4a/examples/js/controls/OrbitControls.js"></script>
+
+		<script src="../libs/mrdoob-three.js-5c6ec4a/examples/js/Detector.js"></script>
+		<script src="../libs/mrdoob-three.js-5c6ec4a/examples/js/libs/stats.min.js"></script>
+		
+		<script type="text/javascript" src="../libs/dat.gui.min.js"></script>
+	</head>
+	<body>
+		<script>		
+		var scene, render, container, camera, controls, stats;
+		
+		var leftDist = 30, rightDist = 30, wallHight = 200, groundDist = 4, laneNum = 2;
+		var leftWall, rightWall;
+		var root_ground = new THREE.Object3D(), root_line = new THREE.Object3D();
+		
+		var rightRot = 0;
+		
+		init();
+		animate();	
+		function init(){
+			//----- THREE.JS OBJECT -----
+			// Scene Create
+			scene = new THREE.Scene();
+			// Render
+			renderer = new THREE.WebGLRenderer({
+				antialias: true
+			});				
+			renderer.setClearColor( 0xffffff );
+			renderer.setSize(window.innerWidth, window.innerHeight);
+			// container created
+			container = document.createElement("div");
+			container.appendChild( renderer.domElement );
+			document.body.appendChild(container);
+			// Camera Setting				
+			camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 1, 10000);
+			camera.position.set(0, 50, 0);
+			camera.lookAt(0.0, 0.0, 0.0);
+			camera.up.set(0.0, 1.0, 0.0)
+			//controls.addEventListener( 'change', render ); // add this only if there is no animation loop (requestAnimationFrame)
+			// world (x-z plane)
+			var gridXZ = new THREE.GridHelper(1000, 50);
+			gridXZ.setColors( new THREE.Color(0xff0000), new THREE.Color(0xffffff) );
+			scene.add(gridXZ);				
+			// Lights	
+			light = new THREE.DirectionalLight( 0xffffff );
+			light.position.set( 1, 1, 1 );
+			scene.add( light );
+			light = new THREE.DirectionalLight( 0xffffff );
+			light.position.set( 1, 1, -1 );
+			scene.add( light );
+			light = new THREE.DirectionalLight( 0x002288 );
+			light.position.set( -1, -1, -1 );
+			//scene.add( light );
+			light = new THREE.AmbientLight( 0x222222 );
+			scene.add( light );
+			// Controls && Project
+			controls = new THREE.OrbitControls(camera, renderer.domElement);
+			// State monitor
+			stats = new Stats();
+			stats.domElement.style.position = 'absolute';
+			stats.domElement.style.top = '0px';
+			stats.domElement.style.zIndex = 100;
+			container.appendChild( stats.domElement );
+			// EventListner
+			window.addEventListener( 'resize', onWindowResize, false );
+			document.addEventListener('mousedown', on_document_mouse_down, false);		
+
+			//----- DAT GUI -----
+			var gui = new dat.GUI();
+			gui.add(this, "leftDist", 0.0, 100.0).name("Left Distance").onChange(function (value) {
+				leftWall.position.z = -value ;
+				onDistChange();
+			});	
+			gui.add(this, "rightDist", 0.0, 100.0).name("Left Distance").onChange(function (value) {
+				rightWall.position.z = value ;
+				onDistChange();
+			});	
+			gui.add(this, "rightRot", 0.0, 360.0).name("Wall Rotate").onChange(function (value) {
+				rightWall.rotation.y = value * Math.PI/180;
+			});					
+			gui.add(this, "laneNum", {one: 1, two: 2, three: 3, four: 4}).name("Lane Number").onChange(function (value) {				
+				if(root_line.children != null){
+					root_line.remove(root_line.children[0]);
+					helper_geometry_base = new THREE.Object3D();
+					var span = 3;
+					for(var j=1; j<value; j++){
+						for(var i=0; i<=span; i++){
+							var helper_shape = new THREE.Shape();
+							helper_shape.moveTo(-22.5, -2);
+							helper_shape.lineTo(-22.5, 2);
+							helper_shape.lineTo(22.5, 2);
+							helper_shape.lineTo(22.5, -2);
+							helper_shape.lineTo(-22.5, -2);
+							var extrudeSettings = {
+								amount: 0.25
+							};
+							extrudeSettings.bevelEnabled = false;
+							var helper_geometry = new THREE.ExtrudeGeometry(helper_shape, extrudeSettings);
+							var helper_mesh = new THREE.Mesh(helper_geometry, new THREE.MeshNormalMaterial())
+							
+							helper_mesh.rotation.x = -Math.PI / 2.0;
+							helper_mesh.position.x = i*400/span - 200;
+							helper_mesh.position.y = -groundDist;
+							helper_geometry_base.add(helper_mesh);
+						}		
+						//helper_geometry_base.z = -(rightDist - leftDist) + j*(rightDist - leftDist)/value;
+						root_line.add(helper_geometry_base);	
+					}			
+				}
+			});	
+			
+			// Left Wall
+			var texture, material, plane;
+			texture = THREE.ImageUtils.loadTexture( "../src/img/left.png" );
+			material = new THREE.MeshLambertMaterial({ map : texture });
+			plane = new THREE.Mesh(new THREE.PlaneGeometry(400, wallHight), material);
+			plane.material.side = THREE.DoubleSide;
+			plane.position.z = -leftDist;
+			plane.position.y = wallHight/2 - groundDist;
+			scene.add( plane );	
+			leftWall = plane;
+			
+			// Right Wall
+			var texture, material, plane;
+			texture = THREE.ImageUtils.loadTexture( "../src/img/right.png" );
+			material = new THREE.MeshLambertMaterial({ map : texture });
+			plane = new THREE.Mesh(new THREE.PlaneGeometry(400, wallHight), material);
+			plane.material.side = THREE.DoubleSide;
+			plane.rotation.y = Math.PI;
+			plane.position.z = rightDist;
+			plane.position.y = wallHight/2 - groundDist;
+			scene.add( plane );
+			rightWall = plane;
+				
+			// Ground	
+			var material, plane;
+			var material = new THREE.MeshBasicMaterial( {color: 0x666666, side: THREE.DoubleSide} );
+			plane = new THREE.Mesh(new THREE.PlaneGeometry(400, leftDist + rightDist), material);
+			plane.material.side = THREE.DoubleSide;
+			plane.rotation.x = -Math.PI/2;
+			plane.position.z = (rightDist - leftDist)/2;
+			plane.position.y = -groundDist;
+			root_ground.add(plane);
+			scene.add( root_ground );
+			
+			// Draw Line
+			helper_geometry_base = new THREE.Object3D();
+			var span = 3;
+			for(var i=0; i<=span; i++){
+				var helper_shape = new THREE.Shape();
+				helper_shape.moveTo(-22.5, -2);
+				helper_shape.lineTo(-22.5, 2);
+				helper_shape.lineTo(22.5, 2);
+				helper_shape.lineTo(22.5, -2);
+				helper_shape.lineTo(-22.5, -2);
+				var extrudeSettings = {
+					amount: 0.25
+				};
+				extrudeSettings.bevelEnabled = false;
+				var helper_geometry = new THREE.ExtrudeGeometry(helper_shape, extrudeSettings);
+				var helper_mesh = new THREE.Mesh(helper_geometry, new THREE.MeshNormalMaterial())
+				
+				helper_mesh.rotation.x = -Math.PI / 2.0;
+				helper_mesh.position.x = i*400/span - 200;
+				helper_mesh.position.y = -groundDist;
+				helper_geometry_base.add(helper_mesh);
+			}			
+			root_line.add(helper_geometry_base);
+			root_line.position.z = (rightDist - leftDist)/2;
+			scene.add(root_line);
+			
+		}
+		
+		function onDistChange() {
+			if(root_ground.children != null){
+				root_ground.remove(root_ground.children[0]);
+				// Ground	
+				var material, plane;
+				var material = new THREE.MeshBasicMaterial( {color: 0x666666, side: THREE.DoubleSide} );
+				plane = new THREE.Mesh(new THREE.PlaneGeometry(400, leftDist + rightDist), material);
+				plane.material.side = THREE.DoubleSide;
+				plane.rotation.x = -Math.PI/2;
+				plane.position.z = (rightDist - leftDist)/2;
+				plane.position.y = -groundDist;
+				root_ground.add(plane);
+				
+				helper_geometry_base.position.z = (rightDist - leftDist)/2;
+			
+			}
+		}
+		
+		function onWindowResize() {
+			camera.aspect = window.innerWidth / window.innerHeight;
+			camera.updateProjectionMatrix();
+
+			renderer.setSize( window.innerWidth, window.innerHeight );
+		}
+
+		function animate() {
+			requestAnimationFrame( animate );
+			controls.update(); // required if controls.enableDamping = true, or if controls.autoRotate = true
+			stats.update();
+			
+			render();
+		}
+
+		function render() {
+			renderer.render( scene, camera );
+		}			
+		function on_document_mouse_down(event) {
+		
+		}			
+		</script>
+	</body>
+</html>

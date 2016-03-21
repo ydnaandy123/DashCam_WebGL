@@ -5,7 +5,9 @@ GSVPANO.PanoDepthLoader = function (parameters) {
 
     var _parameters = parameters || {},
         onDepthLoad = null;
-
+	// added
+	var _data;
+	
     this.load = function(panoId) {
         var self = this,
             url;
@@ -171,6 +173,8 @@ GSVPANO.PanoDepthLoader = function (parameters) {
         depthMapData = new DataView(depthMap.buffer);
         header = self.parseHeader(depthMapData);
         data = self.parsePlanes(header, depthMapData);
+		// added
+		this._data = data;
         depthMap = self.computeDepthMap(header, data.indices, data.planes);
 
         return depthMap;
