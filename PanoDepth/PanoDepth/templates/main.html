@@ -1,0 +1,119 @@
+<html>
+<head>
+    <meta charset="UTF-8">
+    <meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
+
+    {% load staticfiles %}
+<!--
+    <script type="text/javascript" src="{% static 'libs/jquery-1.11.2.min.js' %}"></script>
+-->
+    <script type="text/javascript" src="https://maps.googleapis.com/maps/api/js?v=3.exp&sensor=false"></script>
+
+    <script src="../static/libs/GSVPanoDepth.js-master/examples/js/zpipe.min.js" type="text/javascript"></script>
+    <script src="{% static 'libs/GSVPanoDepth.js-master/examples/js/GSVPano.js' %}" type="text/javascript"></script>
+    <script src="{% static 'libs/GSVPanoDepth.js-master/src/GSVPanoDepth.js' %}" type="text/javascript"></script>
+    <script src="{% static 'libs/GSVPanoDepth.js-master/examples/js/jquery.min.js' %}" type="text/javascript"></script>
+    <script src="{% static 'libs/GSVPanoDepth.js-master/examples/js/jquery.base64.min.js' %}" type="text/javascript"></script>
+
+
+</head>
+
+<body>
+
+<div id="pano_container" ></div>
+<div id="depth_container" ></div>
+
+<input type="text" id="name"  placeholder="filename"></input></br>
+<textarea id="position" rows="4" cols="30" placeholder="24.965596 121.225852
+24.965524 121.225841
+..."></textarea></br>
+<input type="button" value="getData" onclick="getData()"></input>
+
+</body>
+
+<script>
+
+var final_data;
+var final_depthMap;
+
+function getData(){
+
+	if($("#name").val().length==0){
+		alert("No Name");
+		return;
+	}
+
+	var lines = $("#position").val().split("\n");
+
+	for (i = 0; i < lines.length; i++) {
+    	var line =lines[i].split(" ");
+    	var lat = parseFloat(line[0]);
+    	var lon = parseFloat(line[1]);
+    	console.log("lat = "+lat);
+    	console.log("lon = "+lon);
+    	if(line.length>=2)getPanoDepth(lat , lon ,i);
+	}
+
+}
+
+function getPanoDepth(lat, lon, index){
+
+	if (isNaN(lat) || isNaN(lon))return;
+
+	var file_dir = $("#name").val();
+	var file1_name = "data_" + index;
+	var file2_name = "depthMap_" + index;
+
+	var pano_loader = new GSVPANO.PanoLoader({
+		zoom: 1
+	});
+	var depth_loader = new GSVPANO.PanoDepthLoader();	
+			
+	//----- LOAD PANO -----
+	pano_loader.load(new google.maps.LatLng(lat,lon));
+	pano_loader.onPanoramaLoad = function () {
+
+		depth_loader.load(this.panoId);
+	};
+				
+	//----- LOAD DEPTH -----
+	depth_loader.onDepthLoad = function () {
+		
+		final_depthMap = JSON.stringify(final_depthMap ) ;
+		final_data = JSON.stringify(final_data ) ;
+	
+    	$.ajax({
+		    type: "POST",
+		    url: "http://127.0.0.1:8000/datasave/",
+		    headers: { 'datadir': file_dir , 'dataname': file1_name},
+		    data:final_data, 
+		    contentType: "application/json; charset=utf-8",
+		    dataType: "json",
+		    success: function(data){
+		    	console.log("data send success");
+		    },
+		    failure: function(errMsg) {
+		        console.log(errMsg);
+		    }
+		})
+		$.ajax({
+		    type: "POST",
+		    url: "http://127.0.0.1:8000/depthmapsave/",
+		    headers: { 'datadir': file_dir , 'dataname': file2_name},
+		    data:this.depthMap, 
+		    contentType: "application/json; charset=utf-8",
+		    dataType: "json",
+		    success: function(data){
+		    	console.log("depthMap send success");
+		    },
+		    failure: function(errMsg) {
+		        console.log(errMsg);
+		    }
+		})
+
+
+	}		
+}
+</script>
+
+</html>

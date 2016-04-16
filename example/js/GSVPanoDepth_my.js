@@ -11,7 +11,6 @@ GSVPANO.PanoDepthLoader = function (parameters) {
     this.load = function(panoId) {
         var self = this,
             url;
-
         url = "http://maps.google.com/cbk?output=json&cb_client=maps_sv&v=4&dm=1&pm=1&ph=1&hl=en&panoid=" + panoId;
 
         $.ajax({

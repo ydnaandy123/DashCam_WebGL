@@ -1,0 +1,26 @@
+<!DOCTYPE html>
+<html>
+<body>
+
+
+<p id="demo"></p>
+<script src="https://code.jquery.com/jquery-1.12.0.min.js"></script>
+<script src="https://code.jquery.com/jquery-migrate-1.2.1.min.js"></script>
+
+
+<script>
+	var text = '{"employees-ii":[{"firstName":"John","lastName":"Doe" },' +
+	'{"firstName":"Anna","lastName":"Smith" },' +
+	'{"firstName":"Peter","lastName":"Jones" }]}';
+
+	console.log(text);
+	obj = JSON.parse(text);
+	console.log(obj['employees-ii']);
+	//document.getElementById("demo").innerHTML =
+	//obj.employees-ii[1].firstName + " " + obj.employees[1].lastName;
+
+
+</script>
+<div></div>
+</body>
+</html>

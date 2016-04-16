@@ -1,0 +1,92 @@
+<!DOCTYPE html>
+<html>
+<body>
+
+
+<p id="demo"></p>
+<script src="https://code.jquery.com/jquery-1.12.0.min.js"></script>
+<script src="https://code.jquery.com/jquery-migrate-1.2.1.min.js"></script>
+
+
+<script>
+/*
+$.getJSON("json/info_3d_00002.json", function(json) {
+	var first = true, pathPoint = [];
+	$.each(json, function(keyFrame, valFrame){
+		$.each(valFrame, function(keyLocation, valLocation){
+			if(first){
+				var loc = keyLocation.split(",")			
+				pathPoint.push(parseFloat(loc[0]), parseFloat(loc[1]));
+			}
+			for(var i=0; i<valLocation.length; i++)	{
+				//console.log(valLocation[i]);
+			}
+		});		
+		first = false;
+	});
+	console.log(pathPoint);
+});
+
+function loadJSON(callback) {   
+
+    var xobj = new XMLHttpRequest();
+        xobj.overrideMimeType("application/json");
+    xobj.open('GET', 'json/info_3d_00002.json', true); // Replace 'my_data' with the path to your file
+    xobj.onreadystatechange = function () {
+          if (xobj.readyState == 4 && xobj.status == "200") {
+            // Required use of an anonymous callback as .open will NOT return a value but simply returns undefined in asynchronous mode
+            callback(xobj.responseText);
+          }
+    };
+    xobj.send(null);  
+ }
+ 
+ loadJSON(function(response) {
+  // Parse JSON string into object
+    var actual_JSON = JSON.parse(response);
+	console.log(actual_JSON);
+	var first = true, pathPoint = [];
+	$.each(actual_JSON, function(keyFrame, valFrame){
+		$.each(valFrame, function(keyLocation, valLocation){
+			if(first){
+				var loc = keyLocation.split(",")			
+				pathPoint.push(parseFloat(loc[0]), parseFloat(loc[1]));
+			}
+			for(var i=0; i<valLocation.length; i++)	{
+				//console.log(valLocation[i]);
+			}
+		});		
+		first = false;
+	});
+	console.log(pathPoint);		
+ });*/
+ 
+
+var xmlhttp = new XMLHttpRequest();
+var url = "json/info_3d_00002.json";
+
+xmlhttp.onreadystatechange = function() {
+    if (xmlhttp.readyState == 4 && xmlhttp.status == 200) {
+        var myArr = JSON.parse(xmlhttp.responseText);
+        myFunction(myArr);
+    }
+};
+xmlhttp.open("GET", url, true);
+xmlhttp.send();
+
+function myFunction(arr) {
+    var out = "hi";
+	console.log(arr['image-00083']['25.058494,121.497577']);
+    /*var i;
+    for(i = 0; i < arr.length; i++) {
+        out += '<a href="' + arr[i].url + '">' + 
+        arr[i].display + '</a><br>';
+    }*/
+    document.getElementById("demo").innerHTML = out;
+}
+</script>
+
+</script>
+<div></div>
+</body>
+</html>

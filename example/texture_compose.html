@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html lang="en">
 	<head>
-		<title>simple_3d_plane</title>
+		<title>texture_compose</title>
 		<meta charset="utf-8">
 		<meta name="viewport" content="width=device-width, user-scalable=no, minimum-scale=1.0, maximum-scale=1.0">
 		<style>
@@ -237,7 +237,7 @@
 				document.addEventListener('mousedown', on_document_mouse_down, false);
 				
 				//----- DEMO -----		
-				for(var i=0;i<=5;i++){
+				for(var i=0;i<=0;i++){
 					render_street_point_cloud(pathPoint[2*(i+6)], pathPoint[2*(i+6)+1],i);	
 				}
 			}		
@@ -400,13 +400,13 @@
 					context.putImageData(image, 0, 0);
 					var groundImage = image;
 					var ground_container = document.getElementById('ground_container');
-					ground_container.appendChild(canvas);
+					//ground_container.appendChild(canvas);
 					// Spherical geometry
 					geometryTexture.addAttribute('position', new THREE.BufferAttribute(positionsTexture, 3));
 					geometryTexture.addAttribute('color', new THREE.BufferAttribute(colors, 3));
 					geometryTexture.computeBoundingBox();
 					var pointcloud = new THREE.Points(geometryTexture, point_cloud_material);
-					//street_view_heading.add(pointcloud);
+					street_view_heading.add(pointcloud);
 					// Ground geometry
 					geometry.addAttribute('position', new THREE.BufferAttribute(positions, 3));
 					geometry.addAttribute('color', new THREE.BufferAttribute(colors, 3));
@@ -454,7 +454,7 @@
 						
 						
 						// Draw Vector	
-						if(8000 <=i && i<=8005 ){
+						if(8000 <=i && i<=8050 ){
 							var color = new THREE.Color( (i - 8000) / 385, (i - 8000) / 385, (i - 8000) / 385) ;
 							var material = new THREE.LineBasicMaterial({
 								color: color.getHex()
@@ -467,7 +467,7 @@
 							);
 							var line = new THREE.Line( geometry, material );
 							//line.scale.x = 50; line.scale.y = 50; line.scale.z = 50;
-							//street_view_heading.add( line );	
+							street_view_heading.add( line );	
 
 							image.data[4 * (y * textWidth + x) + 0] = 255;
 							image.data[4 * (y * textWidth + x) + 1] = 0;
@@ -523,7 +523,7 @@
 					//plane.updateMatrix();
 					console.log(plane.matrix,geometry);
 					// point color mapping
-					/*console.log(img_canvas_context.canvas.height,img_canvas_context.canvas.width)
+					console.log(img_canvas_context.canvas.height,img_canvas_context.canvas.width)
 					for ( var i = 0; i < geometry.vertices.length; i ++ ) {
 						var vec = geometry.vertices[i].clone();
 						//console.log(vec, vec.applyMatrix4(plane.matrix), vec.applyMatrix4(plane.matrixWorld));
@@ -566,7 +566,7 @@
 						}
 					}
 					
-					street_view_heading.add( plane );		*/			
+					street_view_heading.add( plane );					
 					
 					
 					

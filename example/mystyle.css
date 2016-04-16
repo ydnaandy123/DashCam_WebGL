@@ -1,0 +1,52 @@
+body {
+	color: #000;
+	font-family:Monospace;
+	font-size:13px;
+	text-align:center;
+	font-weight: bold;
+
+	background-color: #fff;
+	margin: 0px;
+	overflow: hidden;
+}
+#pano_container {
+	position:absolute;
+	left:8px;
+	top:48px;
+	width:832px;
+	height:416px;
+	z-index:20;
+	display:block;
+	pointer-events:none;
+	border:2px black solid;
+}
+#depth_container {
+	position:absolute;
+	left:8px;
+	top:80px;
+	width:512px;
+	height:256px;
+	z-index:40;
+	display:block;
+	pointer-events:none;
+	border:2px black solid;
+}
+#ground_container {
+	position:absolute;
+	left:8px;
+	top:80px;
+	width:512px;
+	height:256px;
+	z-index:40;
+	display:block;
+	pointer-events:none;
+	border:2px black solid;
+}
+.hide {
+	opacity:0;
+	transition:opacity .5s ease-out;
+}
+.show {
+	opacity:1;
+	transition:opacity .5s ease-out;
+}
