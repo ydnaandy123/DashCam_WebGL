@@ -1,0 +1,253 @@
+<!DOCTYPE html>
+<html lang="en">
+	<head>
+		<title>basic_app_XYZ_out_purely</title>
+		<meta charset="utf-8">
+		<meta name="viewport" content="width=device-width, user-scalable=no, minimum-scale=1.0, maximum-scale=1.0">
+		<link rel="stylesheet" type="text/css" href="mystyle.css">
+	</head>
+
+	<body>
+		<div id="XYZjson" style="text-align:left">XYZjson</h1>
+				
+		<script src="../libs/mrdoob-three.js-5c6ec4a/examples/../build/three.min.js"></script>
+		
+		<script src="../libs/mrdoob-three.js-5c6ec4a/examples/js/Detector.js"></script>
+		<script src="../libs/mrdoob-three.js-5c6ec4a/examples/js/libs/stats.min.js"></script>
+		
+		<script type="text/javascript" src="https://maps.googleapis.com/maps/api/js?v=3.exp&sensor=false"></script>
+		
+		<script type="text/javascript" src="../libs/dat.gui.min.js"></script>		
+
+		<script src="../libs/GSVPanoDepth.js-master/examples/js/jquery.min.js" type="text/javascript"></script>
+		<script src="../libs/GSVPanoDepth.js-master/examples/js/jquery.base64.min.js" type="text/javascript"></script>
+		<script src="../libs/GSVPanoDepth.js-master/examples/js/zpipe.min.js" type="text/javascript"></script>
+
+		<script src="js/GSVPano_my.js" type="text/javascript"></script>
+		<script src="js/GSVPanoDepth_my.js" type="text/javascript"></script>	
+		
+		<script>				
+			
+			if ( ! Detector.webgl ) Detector.addGetWebGLMessage();
+			//GOOGLE
+			var svs = new google.maps.StreetViewService();
+			//DAT
+			var gui;
+			var demoText = function() {
+			  this.dlPt = function(){		
+				downloadTABLE();
+			  };
+			};
+			var text = new demoText();	
+			//POINT CLOUD	
+			var street_view_heading_set = new THREE.Object3D();		
+			//----- POINT CLOUD COMPOSE -----	
+			var earthR = 6371000, normal_offs;
+			var buffer_geometry_set = [];
+			var matrix_set = [], rotation_set = [], normal_set = [];
+			var pathPoint = [];
+			//APP
+			var actual_JSON, XYZdata ;
+			var Fnum = 0;					
+			
+			init();
+					
+			function init() {
+							
+				loadJSON();			
+				DAT_view();
+							
+			}	
+			function auto_center_street(lat, lon, index){				
+				//----- EACH SINGLE STREETVIEW -----				
+				var street_view = new THREE.Object3D();						
+				var street_view_heading = new THREE.Object3D();		
+				var img_canvas_context = 0, main_rotation = 0;
+				var pano_loader = new GSVPANO.PanoLoader({
+					zoom: 1
+				});
+				var depth_loader = new GSVPANO.PanoDepthLoader();	
+				//World Axis to THREE.js Axis
+				var wT = new THREE.Vector3;
+				computeWorldAxis(lat, lon, wT);	
+				normal_set[index] = new THREE.Vector3(wT.x, wT.y, wT.z);				
+				//----- LOAD PANO -----
+				pano_loader.load(new google.maps.LatLng(lat,lon));
+				pano_loader.onPanoramaLoad = function () {
+					// Store PANO and HEADING, then call depth_loader
+					img_canvas_context = this.canvas.getContext('2d');
+					main_rotation = this.data.tiles.centerHeading;
+					depth_loader.load(this.panoId);
+				};				
+				//----- LOAD DEPTH -----
+				depth_loader.onDepthLoad = function () {
+					// Ground Map
+					var color_data = img_canvas_context.getImageData(0, 0, img_canvas_context.canvas.width, img_canvas_context.canvas.height).data;									
+					// Create Point Cloud
+					var geometry = new THREE.BufferGeometry();
+					var geometryTexture = new THREE.BufferGeometry();
+					var num_points = this.depthMap.width * this.depthMap.height;
+					var positions = new Float32Array(num_points * 3);
+					var colors = new Float32Array(num_points * 3);					
+					var n = 0;						
+					for (var y = 0; y < this.depthMap.height; ++y) {
+						var lat = -(y / this.depthMap.height) * 180.0 + 90.0;
+						var r = Math.cos(lat * Math.PI / 180.0);
+						for (var x = 0; x < this.depthMap.width; ++x) {	
+							var depth = parseFloat(this.depthMap.depthMap[y * this.depthMap.width + x]);							
+							// Panoromic to Spherical							
+							var lng = (x / this.depthMap.width) * 360.0 - 180.0;
+							// Spherical Axis to THREE.js Axis
+							var pos = new THREE.Vector3();
+							pos.y = Math.sin(lat * Math.PI / 180.0);
+							pos.x = (r * Math.sin(lng * Math.PI / 180.0));
+							pos.z = -(r * Math.cos(lng * Math.PI / 180.0)); // IMPORTANT!!!!
+							// Multiple by Depth
+							pos.multiplyScalar(depth);
+							// Store Position and Color of Each Point
+							positions[3 * n + 0] = isNaN(pos.x) ? 0 : pos.x;
+							positions[3 * n + 1] = isNaN(pos.y) ? 0 : pos.y;
+							positions[3 * n + 2] = isNaN(pos.z) ? 0 : pos.z;
+							var color_canvas_x = parseInt((x / this.depthMap.width) * img_canvas_context.canvas.width);
+							var color_canvas_y = parseInt((y / this.depthMap.height) * img_canvas_context.canvas.height);
+							var color_index = color_canvas_y * img_canvas_context.canvas.width * 4 + color_canvas_x * 4;							
+							colors[3 * n + 0] = (color_data[color_index + 0]) / 255.0;
+							colors[3 * n + 1] = (color_data[color_index + 1]) / 255.0;
+							colors[3 * n + 2] = (color_data[color_index + 2]) / 255.0;											
+							n++;
+						}
+					}						
+					// Point Cloud geometry
+					geometry.addAttribute('position', new THREE.BufferAttribute(positions, 3));
+					geometry.addAttribute('color', new THREE.BufferAttribute(colors, 3));
+					geometry.computeBoundingBox();
+					buffer_geometry_set[index] = geometry;
+					
+					rotation_set[index] = -main_rotation * Math.PI / 180.0;
+					street_view.rotation.y = -main_rotation * Math.PI / 180.0;	
+					
+					if(index==0){
+						normal_offs = new THREE.Vector3(wT.x, wT.y, wT.z);		
+					}	
+					//----- World objects Regeisterd in GLWorld -----		
+					registeredInGLWorld(wT, street_view_heading);
+				
+					street_view.updateMatrix();
+					street_view_heading.updateMatrix();	
+					matrix_set[index] = new THREE.Matrix4().multiplyMatrices(street_view_heading.matrix, street_view.matrix);					
+					
+					buffer_geometry_set[index].applyMatrix(matrix_set[index]);
+										
+					// Sequence Download Pano
+					console.log(index, pathLen);
+					if(index+1<pathLen){
+						index++;
+						auto_center_street(pathPoint[2*index], pathPoint[2*index+1],index);	
+					}
+					else{	
+						var XYZobj = actual_JSON;
+						var Fcount=0;
+						$.each(actual_JSON, function(keyFrame, valFrame){		
+							var Lcount=0;
+							$.each(valFrame, function(keyLocation, valLocation){
+								XYZobj[keyFrame][keyLocation] = [];
+								for(var i=0; i<valLocation.length; i++)	{
+									XYZobj[keyFrame][keyLocation].push(buffer_geometry_set[Fcount].attributes.position.array[valLocation[i]*3]);
+									XYZobj[keyFrame][keyLocation].push(buffer_geometry_set[Fcount].attributes.position.array[valLocation[i]*3+1]);
+									XYZobj[keyFrame][keyLocation].push(buffer_geometry_set[Fcount].attributes.position.array[valLocation[i]*3+2]);																		
+								}				
+								Lcount++;
+							});	
+							Fcount++;
+						});		
+											
+						console.log(XYZobj);
+						console.log(buffer_geometry_set);
+						gui.add(text, "dlPt").name("Download TABLE");
+						
+						XYZdata = "text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(XYZobj));
+
+						var a = document.createElement('a');
+						a.href = 'data:' + XYZdata;
+						a.innerHTML = 'download JSON';
+						a.download = 'XYZ.json';			
+				
+						var container = document.createElement("div");
+						container.appendChild(a);		
+						document.body.appendChild(container);						
+					}					
+				}	
+			}
+
+			function downloadTABLE(){
+				var hiddenElement = document.createElement('a');
+				console.log('start');
+				//var data = "text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(buffer_geometry_set[0].toJSON()));
+				var data = XYZdata;
+				console.log('finish');
+				hiddenElement.href = 'data:' + data;				
+				hiddenElement.innerHTML = 'download JSON';
+				hiddenElement.target = '_blank';
+				hiddenElement.download = 'data.json';
+				hiddenElement.click();
+				console.log('download');
+			}
+			function parseJSON(){			
+				var first = true;
+				$.each(actual_JSON, function(keyFrame, valFrame){
+					$.each(valFrame, function(keyLocation, valLocation){
+						//if(first){
+							var loc = keyLocation.split(",")	
+							pathPoint.push(parseFloat(loc[0]), parseFloat(loc[1]));
+						//}
+					});		
+					first = false;
+					Fnum++;
+				});		
+				pathLen = pathPoint.length/2;	
+				auto_center_street(pathPoint[0], pathPoint[1], 0);				
+			}			
+			function loadJSON(callback) {   
+				var xmlhttp;
+				if (window.XMLHttpRequest) {
+					xmlhttp = new XMLHttpRequest();
+				} 
+				else {
+					// code for IE6, IE5
+					xmlhttp = new ActiveXObject("Microsoft.XMLHTTP");
+				}	
+				//var url = "json/test.json";
+				var url = "json/info_3d_hog_00002.json";
+				//var url = "json/info_3d_00002.json";
+
+				xmlhttp.onreadystatechange = function() {
+					if (xmlhttp.readyState == 4 && xmlhttp.status == 200) {
+						actual_JSON = JSON.parse(xmlhttp.responseText);
+						parseJSON();
+					}
+				};
+				xmlhttp.open("GET", url, true);
+				xmlhttp.send();
+			}				
+			function registeredInGLWorld(wT, street_view_heading){
+				street_view_heading.lookAt(wT);
+				street_view_heading.rotateOnAxis(new THREE.Vector3(1,0,0), Math.PI/2);
+				street_view_heading.position.x = wT.x - normal_offs.x;
+				street_view_heading.position.y = wT.y - normal_offs.y;
+				street_view_heading.position.z = wT.z - normal_offs.z;			
+			}			
+			function computeWorldAxis(lat, lon, wT){				
+				var wX, wY, wZ, wR;
+				wR = earthR*Math.cos(lat * Math.PI / 180.0);
+				wY = earthR*Math.sin(lat * Math.PI / 180.0);
+				wX = wR*Math.sin(lon * Math.PI / 180.0);
+				wZ = wR*Math.cos(lon * Math.PI / 180.0);
+				wT.x = wX; wT.y = wY; wT.z = wZ;
+			}				
+			function DAT_view(){
+				//----- DAT GUI -----
+				gui = new dat.GUI();	
+			}
+		</script>
+	</body>
+</html>
