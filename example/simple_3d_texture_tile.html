@@ -255,7 +255,7 @@
 					// Ground Map
 					var color_data = img_canvas_context.getImageData(0, 0, img_canvas_context.canvas.width, img_canvas_context.canvas.height).data;
 					panoColorData[index] = color_data;
-					/*var canvas = document.createElement("canvas");
+					var canvas = document.createElement("canvas");
 					var context = canvas.getContext('2d');
 					canvas.setAttribute('width', this.depthMap.width);
 					canvas.setAttribute('height', this.depthMap.height);
@@ -318,7 +318,7 @@
 					geometry.addAttribute('color', new THREE.BufferAttribute(colors, 3));
 					geometry.computeBoundingBox();
 					var pointcloud = new THREE.Points(geometry, point_cloud_material);
-					street_view_heading.add(pointcloud);*/
+					street_view_heading.add(pointcloud);
 					
 					/*
 					// grid mesh
@@ -466,7 +466,7 @@
 								f.vertexColors[ j ] = geometry.colors[vertexIndex];
 							}
 						}														
-						scene.add(plane)
+						//scene.add(plane)
 						
 						var bbox = new THREE.BoundingBoxHelper( root_street_view_set, new THREE.Color(0xFF9900));
 						bbox.visible = false;

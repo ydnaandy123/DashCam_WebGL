@@ -173,9 +173,9 @@ GSVPANO.PanoDepthLoader = function (parameters) {
         header = self.parseHeader(depthMapData);
         data = self.parsePlanes(header, depthMapData);
 		// added
-		this._data = data;
+		this._data = data;	
         depthMap = self.computeDepthMap(header, data.indices, data.planes);
-
+				
         return depthMap;
     }
 

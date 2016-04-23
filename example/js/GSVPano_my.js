@@ -106,6 +106,7 @@ GSVPANO.PanoLoader = function (parameters) {
                 _panoId = result.location.pano;
                 self.panoId = _panoId;
                 self.location = location;
+				console.log(result);
                 self.composePanorama();
 				// Change
                 self.data = result;

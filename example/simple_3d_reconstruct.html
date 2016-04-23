@@ -208,6 +208,8 @@
 				document.addEventListener('mousedown', on_document_mouse_down, false);
 				
 				//----- DEMO -----		
+				
+				pathPoint = pathPoint.slice(12, pathPoint.length-1);
 				for(var i=0;i<pathPoint.length/2;i++){
 					render_street_point_cloud(pathPoint[2*i], pathPoint[2*i+1],i);	
 				}

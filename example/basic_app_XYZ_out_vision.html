@@ -27,8 +27,7 @@
 		<script src="../libs/GSVPanoDepth.js-master/examples/js/zpipe.min.js" type="text/javascript"></script>
 
 		<script src="js/GSVPano_my.js" type="text/javascript"></script>
-		<script src="js/GSVPanoDepth_my.js" type="text/javascript"></script>		
-		<script src="js/myPlane.js" type="text/javascript"></script>		
+		<script src="js/GSVPanoDepth_my.js" type="text/javascript"></script>	
 		
 		<script>				
 			
@@ -38,9 +37,13 @@
 			//GOOGLE
 			var svs = new google.maps.StreetViewService();
 			//DAT			
-			var demoText = function() {
-			  this.imageIndex = '0';
-			  this.ptIndex = '62459';
+			var guiText = function() {
+			  this.imageFrame = '';
+			  this.location = '';
+			  this.ptIndex = '';
+			  this.ptX = '';
+			  this.ptY = '';
+			  this.ptZ = '';
 			  this.pano_x = '0';
 			  this.pano_y = '0';
 			  this.depth_x = '0';
@@ -48,24 +51,26 @@
 			  this.slPt = function(){
 				selectPt();
 			  }
+			  this.slGroup = function(){
+				selectGroup();
+			  }
 			  this.dlPt = function(){		
-				downloadTABLE();
+				downloadPt();
 			  };
 			};	
-			var gui, text = new demoText(), show_pano = false, show_depth = false, trans = false;	
+			var gui, f_baisc, f_select, f_show, f_download, guiView = new guiText(), show_pano = false, show_depth = false, trans = false;	
 			//POINT CLOUD	
 			var point_cloud_material, point_size = 0.1;		
 			var street_view_heading_set = new THREE.Object3D();		
 			var union_street_view = new THREE.Object3D();
 			//----- POINT CLOUD COMPOSE -----	
 			var pano_container = document.getElementById('pano_container'), dpeth_container = document.getElementById('depth_container');
-			var earthR = 6371000, normal_offs;
-			var buffer_geometry_set = [];
-			var matrix_set = [], rotation_set = [], normal_set = [];
-			var pathPoint = [];
+			var earthR = 6371000, normal_offs, mat_offs;
 			//APP
-			var actual_JSON, XYZobj ;
-			var Fnum = 0;					
+			var actual_JSON, XYZobj, singleXYZ, transXYZ;
+			var selFrame, selLoc, selIndex;
+			var single_line = new THREE.Object3D(), root_group_line = new THREE.Object3D();
+			var	panoSet = {};
 			
 			init();
 			animate();	
@@ -91,16 +96,21 @@
 				var depth_loader = new GSVPANO.PanoDepthLoader();	
 				//World Axis to THREE.js Axis
 				var wT = new THREE.Vector3;
-				computeWorldAxis(lat, lon, wT);	
-				normal_set[index] = new THREE.Vector3(wT.x, wT.y, wT.z);				
+				computeWorldAxis(lat, lon, wT);		
+				panoSet[Object.keys(panoSet)[index]].normal = wT.clone();	
+				if(index==0){
+					normal_offs = new THREE.Vector3(wT.x, wT.y, wT.z);							
+				}
 				//----- LOAD PANO -----
 				pano_loader.load(new google.maps.LatLng(lat,lon));
 				pano_loader.onPanoramaLoad = function () {
 					// Get Panoramic
 					pano_container.appendChild(this.canvas);	
+					panoSet[Object.keys(panoSet)[index]].panoC = this.canvas;
 					// Store PANO and HEADING, then call depth_loader
 					img_canvas_context = this.canvas.getContext('2d');
 					main_rotation = this.data.tiles.centerHeading;
+					panoSet[Object.keys(panoSet)[index]].rotation = -main_rotation * Math.PI / 180.0;
 					depth_loader.load(this.panoId);
 				};				
 				//----- LOAD DEPTH -----
@@ -108,6 +118,7 @@
 					// Ground Map
 					var color_data = img_canvas_context.getImageData(0, 0, img_canvas_context.canvas.width, img_canvas_context.canvas.height).data;									
 					drawDepthMap(this.depthMap);
+					panoSet[Object.keys(panoSet)[index]].depthC = depth_container.children[index];
 					// Create Point Cloud
 					var geometry = new THREE.BufferGeometry();
 					var geometryTexture = new THREE.BufferGeometry();
@@ -145,106 +156,272 @@
 					// Point Cloud geometry
 					geometry.addAttribute('position', new THREE.BufferAttribute(positions, 3));
 					geometry.addAttribute('color', new THREE.BufferAttribute(colors, 3));
-					geometry.computeBoundingBox();
-					buffer_geometry_set[index] = geometry;
+					geometry.computeBoundingBox();								
 					
-					rotation_set[index] = -main_rotation * Math.PI / 180.0;
-					street_view.rotation.y = -main_rotation * Math.PI / 180.0;	
-					
-					if(index==0){
-						normal_offs = new THREE.Vector3(wT.x, wT.y, wT.z);		
-					}	
+						
 					//----- World objects Regeisterd in GLWorld -----		
+					street_view.rotation.y = -main_rotation * Math.PI / 180.0;	
 					registeredInGLWorld(wT, street_view_heading);
 				
 					street_view.updateMatrix();
 					street_view_heading.updateMatrix();	
-					matrix_set[index] = new THREE.Matrix4().multiplyMatrices(street_view_heading.matrix, street_view.matrix);					
+					var matrix = new THREE.Matrix4().multiplyMatrices(street_view_heading.matrix, street_view.matrix);	
+					panoSet[Object.keys(panoSet)[index]].matrix = matrix;
 					
-					buffer_geometry_set[index].applyMatrix(matrix_set[index]);					
-					var pointcloud = new THREE.Points(buffer_geometry_set[index], point_cloud_material);
+					geometry.applyMatrix(matrix);					
+					var pointcloud = new THREE.Points(geometry, point_cloud_material);
 					union_street_view.add(pointcloud);
+											
+					
+					panoSet[Object.keys(panoSet)[index]].buffer_geometry = geometry;					
+					
 										
 					// Sequence Download Pano
 					console.log(index, pathLen);
+					if(index==0){						
+						mat_offs = matrix.clone();
+					}
 					if(index+1<pathLen){
 						index++;
-						auto_center_street(pathPoint[2*index], pathPoint[2*index+1],index);	
+						auto_center_street(panoSet[Object.keys(panoSet)[index]].lat, panoSet[Object.keys(panoSet)[index]].lon, index);	
 					}
 					else{	
-						XYZobj = actual_JSON;
-						var Fcount=0;
-						$.each(actual_JSON, function(keyFrame, valFrame){		
-							var Lcount=0;
+						console.log(panoSet);					
+						$.each(actual_JSON, function(keyFrame, valFrame){	
 							$.each(valFrame, function(keyLocation, valLocation){
 								XYZobj[keyFrame][keyLocation] = [];
 								for(var i=0; i<valLocation.length; i++)	{
-									XYZobj[keyFrame][keyLocation].push(buffer_geometry_set[Fcount].attributes.position.array[valLocation[i]*3]);
-									XYZobj[keyFrame][keyLocation].push(buffer_geometry_set[Fcount].attributes.position.array[valLocation[i]*3+1]);
-									XYZobj[keyFrame][keyLocation].push(buffer_geometry_set[Fcount].attributes.position.array[valLocation[i]*3+2]);																		
+									XYZobj[keyFrame][keyLocation].push(panoSet[keyLocation].buffer_geometry.attributes.position.array[valLocation[i]*3]);
+									XYZobj[keyFrame][keyLocation].push(panoSet[keyLocation].buffer_geometry.attributes.position.array[valLocation[i]*3+1]);
+									XYZobj[keyFrame][keyLocation].push(panoSet[keyLocation].buffer_geometry.attributes.position.array[valLocation[i]*3+2]);																											
 								}				
-								Lcount++;
 							});	
-							Fcount++;
 						});													
 						console.log(XYZobj);	
-						gui.add(text, "slPt", false).name("Select point");	
-						gui.add(text, "dlPt").name("Download TABLE");		
-					}					
+						f_confirm.add(guiView, "slPt", false).name("Select point");	
+						f_confirm.add(guiView, "slGroup", false).name("Select group");	
+						f_download.add(guiView, "dlPt").name("Download pt");	
+					}				
 				}	
 			}	
-			function downloadTABLE(){
-				
+			function downloadPt(){
+				var hiddenElement = document.createElement('a');
+				console.log('start');				
+				var XYZdata = "text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(XYZobj));				
+				console.log('finish');
+				hiddenElement.href = 'data:' + XYZdata;				
+				hiddenElement.innerHTML = 'download JSON';
+				hiddenElement.target = '_blank';
+				hiddenElement.download = 'data.json';
+				hiddenElement.click();
+				console.log('download');				
 			}
-			function selectPt() {					
-				console.log(actual_JSON);
-				var	imageIdx = parseInt(text.imageIndex);
-				var index = parseInt(text.ptIndex);		
+			function selectPt() {	
+				if(guiView.location == '' || guiView.ptIndex == ''){
+					guiView.ptX = 'select point first';
+					guiView.ptY = 'select point first';
+					guiView.ptZ = 'select point first';
+					return ;
+				}
+				var index = parseInt(guiView.ptIndex);		
 				
-				var canvas = depth_container.children[imageIdx];					
-				text.depth_y = parseInt(index / canvas.width);							
-				text.depth_x = parseInt(index % canvas.width);
-				var context = canvas.getContext('2d');					
+				var canvasDsrc = panoSet[guiView.location].depthC;
+				var canvas = document.createElement("canvas");		
+				canvas.width = canvasDsrc.width;
+				canvas.height = canvasDsrc.height;
+				guiView.depth_y = parseInt(index / canvas.width);							
+				guiView.depth_x = parseInt(index % canvas.width);
+				var context = canvas.getContext('2d');		
+				context.drawImage(canvasDsrc, 0, 0);				
 				context.fillStyle = "#FF0000";
-				context.fillRect(text.depth_x-5,text.depth_y-5,10,10);					
+				context.fillRect(guiView.depth_x-5,guiView.depth_y-5,10,10);		
+				while (depth_container.firstChild) {
+					depth_container.removeChild(depth_container.firstChild);
+				}
+				depth_container.appendChild(canvas);			
 				
-				var canvasP = pano_container.children[imageIdx];
-				text.pano_x = parseInt(text.depth_x / canvas.width * canvasP.width);
-				text.pano_y = parseInt(text.depth_y / canvas.height * canvasP.height);
-				var context = canvasP.getContext('2d');					
+				
+				
+				var canvasPsrc = panoSet[guiView.location].panoC;
+				var canvasP = document.createElement("canvas");
+				canvasP.width = canvasPsrc.width;
+				canvasP.height = canvasPsrc.height;
+				guiView.pano_x = parseInt(guiView.depth_x / canvas.width * canvasP.width);
+				guiView.pano_y = parseInt(guiView.depth_y / canvas.height * canvasP.height);
+				var context = canvasP.getContext('2d');		
+				context.drawImage(canvasPsrc, 0, 0);
 				context.fillStyle = "#FF0000";
-				context.fillRect(text.pano_x-5,text.pano_y-5,10,10);							
+				context.fillRect(guiView.pano_x-5,guiView.pano_y-5,10,10);	
+				while (pano_container.firstChild) {
+					pano_container.removeChild(pano_container.firstChild);
+				}
+				pano_container.appendChild(canvasP);
 				
-				var XYZ = new THREE.Vector3(
-					buffer_geometry_set[imageIdx].attributes.position.array[index*3],
-					buffer_geometry_set[imageIdx].attributes.position.array[index*3 + 1],
-					buffer_geometry_set[imageIdx].attributes.position.array[index*3 + 2]
+				singleXYZ = new THREE.Vector3(
+					panoSet[guiView.location].buffer_geometry.attributes.position.array[index*3],
+					panoSet[guiView.location].buffer_geometry.attributes.position.array[index*3 + 1],
+					panoSet[guiView.location].buffer_geometry.attributes.position.array[index*3 + 2]
 				)
+				transXYZ = singleXYZ.clone().applyProjection(new THREE.Matrix4().getInverse(mat_offs));
+				if(!trans){				
+					guiView.ptX = singleXYZ.x;
+					guiView.ptY = singleXYZ.y;
+					guiView.ptZ = singleXYZ.z;
+				}
+				else{
+					guiView.ptX = transXYZ.x;
+					guiView.ptY = transXYZ.y;
+					guiView.ptZ = transXYZ.z;
+				}
 				var material = new THREE.LineBasicMaterial({ color: 0x0000ff }); 
 				var geometry = new THREE.Geometry(); 
 				geometry.vertices.push( 
-					new THREE.Vector3( normal_set[imageIdx].x - normal_offs.x, normal_set[imageIdx].y - normal_offs.y, normal_set[imageIdx].z - normal_offs.z ),
-					new THREE.Vector3(  XYZ.x, XYZ.y, XYZ.z)
+					new THREE.Vector3( panoSet[guiView.location].normal.x - normal_offs.x, panoSet[guiView.location].normal.y - normal_offs.y, panoSet[guiView.location].normal.z - normal_offs.z ),
+					new THREE.Vector3(  singleXYZ.x, singleXYZ.y, singleXYZ.z)
 				); 
-				console.log(XYZ);
 				
 				var line = new THREE.Line( geometry, material ); 
-				union_street_view.add( line );
-			};				
-			function parseJSON(){			
-				var first = true;
-				$.each(actual_JSON, function(keyFrame, valFrame){
-					$.each(valFrame, function(keyLocation, valLocation){
-						//if(first){
-							var loc = keyLocation.split(",")	
-							pathPoint.push(parseFloat(loc[0]), parseFloat(loc[1]));
-						//}
-					});		
-					first = false;
-					Fnum++;
+				while(single_line.children.length>0){
+					single_line.remove(single_line.children[0]);
+				}
+				single_line.add( line );	
+			};		
+			function selectGroup() {			
+				if(guiView.imageFrame == ''){
+					guiView.ptX = 'select frame first';
+					guiView.ptY = 'select frame first';
+					guiView.ptZ = 'select frame first';
+					return ;
+				}
+				var selFrame = actual_JSON[guiView.imageFrame];
+				
+				
+				var canvasDsrc = panoSet[guiView.location].depthC;
+				var canvas = document.createElement("canvas");		
+				canvas.width = canvasDsrc.width;
+				canvas.height = canvasDsrc.height;			
+				var contextD = canvas.getContext('2d');		
+				contextD.drawImage(canvasDsrc, 0, 0);		
+				
+				var canvasPsrc = panoSet[guiView.location].panoC;
+				var canvasP = document.createElement("canvas");
+				canvasP.width = canvasPsrc.width;
+				canvasP.height = canvasPsrc.height;
+				var contextP = canvasP.getContext('2d');		
+				contextP.drawImage(canvasPsrc, 0, 0);
+				
+					
+				
+				var group_line = new THREE.Object3D();
+				$.each(selFrame, function(keyLocation, valLocation){
+					for(var i=0; i<valLocation.length; i++)	{
+						var index = selFrame[keyLocation][i];
+						
+						guiView.depth_y = parseInt(index / canvas.width);							
+						guiView.depth_x = parseInt(index % canvas.width);			
+						contextD.fillStyle = "#FF0000";
+						contextD.fillRect(guiView.depth_x-2,guiView.depth_y-2,4,4);		
+
+						guiView.pano_x = parseInt(guiView.depth_x / canvas.width * canvasP.width);
+						guiView.pano_y = parseInt(guiView.depth_y / canvas.height * canvasP.height);
+						contextP.fillStyle = "#FF0000";
+						contextP.fillRect(guiView.pano_x-2,guiView.pano_y-2,4,4);
+						
+						var XYZ = new THREE.Vector3(
+							panoSet[keyLocation].buffer_geometry.attributes.position.array[index*3],
+							panoSet[keyLocation].buffer_geometry.attributes.position.array[index*3 + 1],
+							panoSet[keyLocation].buffer_geometry.attributes.position.array[index*3 + 2]
+						)
+						
+						var material = new THREE.LineBasicMaterial({ color: 0x00ff00 }); 
+						var geometry = new THREE.Geometry(); 
+						geometry.vertices.push( 
+							new THREE.Vector3( panoSet[keyLocation].normal.x - normal_offs.x, panoSet[keyLocation].normal.y - normal_offs.y, panoSet[keyLocation].normal.z - normal_offs.z ),
+							new THREE.Vector3(  XYZ.x, XYZ.y, XYZ.z)
+						); 				
+						
+						var line = new THREE.Line( geometry, material ); 
+						group_line.add( line );	
+					}			
 				});		
-				pathLen = pathPoint.length/2;	
-				auto_center_street(pathPoint[0], pathPoint[1], 0);				
+				while(root_group_line.children.length>0){
+					root_group_line.remove(root_group_line.children[0]);
+				}
+				root_group_line.add(group_line);
+				
+						
+				while (depth_container.firstChild) {
+					depth_container.removeChild(depth_container.firstChild);
+				}
+				depth_container.appendChild(canvas);	
+				
+				while (pano_container.firstChild) {
+					pano_container.removeChild(pano_container.firstChild);
+				}
+				pano_container.appendChild(canvasP);
+			};				
+			function SelectTree(value){
+				while(single_line.children.length>0){
+					single_line.remove(single_line.children[0]);
+				}
+				while(root_group_line.children.length>0){
+					root_group_line.remove(root_group_line.children[0]);
+				}
+				
+				selLoc = []; var KF = value;
+				for(var i in f_select.__controllers){
+					if(f_select.__controllers[i].property == 'location'){
+						f_select.__controllers[i].remove();
+						guiView.location = '';
+						break;
+					}
+				}
+				for(var i in f_select.__controllers){
+					if(f_select.__controllers[i].property == 'ptIndex'){
+						f_select.__controllers[i].remove();	
+						guiView.ptIndex = '';
+						break;
+					}
+				}
+				$.each(actual_JSON[value], function(keyLocation, valLocation){
+					selLoc.push(keyLocation);
+				});	
+				f_select.add(guiView, 'location', selLoc).onChange(function (value) {
+					selIndex = [];						
+					for(var i in f_select.__controllers){
+						if(f_select.__controllers[i].property == 'ptIndex'){
+							f_select.__controllers[i].remove();	
+							guiView.ptIndex = '';
+							break;
+						}
+					}
+					for(var i=0; i<actual_JSON[KF][value].length; i++)	{
+						selIndex.push(actual_JSON[KF][value][i])
+					}
+					f_select.add(guiView, 'ptIndex', selIndex).onChange(function (value) {
+					
+					});
+				});					
+				f_select.add(guiView, 'ptIndex', []);	
+			}
+			function parseJSON(){	
+				selFrame = [];
+				$.each(actual_JSON, function(keyFrame, valFrame){
+					selFrame.push(keyFrame);
+					$.each(valFrame, function(keyLocation, valLocation){
+						if(panoSet[keyLocation] == undefined){
+							var loc = keyLocation.split(",")	
+							panoSet[keyLocation] = {lat:parseFloat(loc[0]), lon:parseFloat(loc[1])};												
+						}	
+					});		
+				});		
+				f_select.add(guiView, 'imageFrame', selFrame).onChange(function (value) {
+					SelectTree(value);
+				});		
+				f_select.add(guiView, 'location', []);	
+				f_select.add(guiView, 'ptIndex', []);			
+				pathLen = Object.keys(panoSet).length;	
+				auto_center_street(panoSet[Object.keys(panoSet)[0]].lat, panoSet[Object.keys(panoSet)[0]].lon, 0);				
 			}			
 			function loadJSON(callback) {   
 				var xmlhttp;
@@ -257,11 +434,12 @@
 				}	
 				//var url = "json/test.json";
 				var url = "json/info_3d_hog_00002.json";
-				//var url = "json/info_3d_00002.json";
+				//var url = "json/info_3d_hog_00004.json";
 
 				xmlhttp.onreadystatechange = function() {
 					if (xmlhttp.readyState == 4 && xmlhttp.status == 200) {
 						actual_JSON = JSON.parse(xmlhttp.responseText);
+						XYZobj = JSON.parse(xmlhttp.responseText);
 						parseJSON();
 					}
 				};
@@ -305,29 +483,54 @@
 			function DAT_view(){
 				//----- DAT GUI -----
 				gui = new dat.GUI();
-				gui.add(this, "point_size", 0.1, 2.0).name("Point size").onChange(function (value) {
+				f_baisc = gui.addFolder('Basic');
+				f_baisc.open();
+				f_select = gui.addFolder('Select');
+				f_select.open();
+				f_confirm = gui.addFolder('Confirm');
+				f_confirm.open();
+				f_show = gui.addFolder('XYZ (read only)');
+				f_show.open();
+				f_download = gui.addFolder('download');
+				f_download.open();
+				
+				f_baisc.add(this, "point_size", 0.1, 2.0).name("Point size").onChange(function (value) {
 					point_cloud_material.size = point_size;
 				});	
-				gui.add(this, "show_pano", false).name("Show pano image").onChange(function (value) {
+				f_baisc.add(this, "show_pano", false).name("Show pano image").onChange(function (value) {
 					if (value)
 						document.getElementById("pano_container").className = "show";
 					else
 						document.getElementById("pano_container").className = "hide";
 				});
-				gui.add(this, "show_depth", false).name("Show depth").onChange(function (value) {
+				f_baisc.add(this, "show_depth", false).name("Show depth").onChange(function (value) {
 					if (value)
 						document.getElementById("depth_container").className = "show";
 					else
 						document.getElementById("depth_container").className = "hide";
 				});			
-				gui.add(this, "trans", false).name("Axis trans").onChange(function (value) {
-					if (value)
-						union_street_view.applyMatrix(new THREE.Matrix4().getInverse(matrix_set[0]));
-					else
-						union_street_view.applyMatrix(matrix_set[0]);
+				f_baisc.add(this, "trans", false).name("Axis trans").onChange(function (value) {
+					if (value){
+						union_street_view.applyMatrix(new THREE.Matrix4().getInverse(mat_offs));
+						if(guiView.ptX != ''){
+						console.log(guiView.ptX);
+							guiView.ptX = transXYZ.x;
+							guiView.ptY = transXYZ.y;
+							guiView.ptZ = transXYZ.z;
+						}
+					}						
+					else{
+						union_street_view.applyMatrix(mat_offs);
+						if(guiView.ptX != ''){
+							guiView.ptX = singleXYZ.x;
+							guiView.ptY = singleXYZ.y;
+							guiView.ptZ = singleXYZ.z;
+						}
+					}						
 				});	
-				gui.add(text, 'imageIndex');
-				gui.add(text, 'ptIndex');							
+				f_show.add(guiView, 'ptX').listen();
+				f_show.add(guiView, 'ptY').listen();
+				f_show.add(guiView, 'ptZ').listen();
 			}
 			function THREE_scene_init(){
 				//----- THREE.JS OBJECT -----
@@ -369,6 +572,8 @@
 				// Point Cloud Objects
 				scene.add(street_view_heading_set);		
 				scene.add(union_street_view);
+				union_street_view.add(single_line);
+				union_street_view.add(root_group_line);
 				// world (x-z plane)
 				var gridXZ = new THREE.GridHelper(1000, 50);
 				gridXZ.setColors( new THREE.Color(0xff0000), new THREE.Color(0xffffff) );
