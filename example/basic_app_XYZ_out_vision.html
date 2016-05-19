@@ -168,7 +168,14 @@
 					var matrix = new THREE.Matrix4().multiplyMatrices(street_view_heading.matrix, street_view.matrix);	
 					panoSet[Object.keys(panoSet)[index]].matrix = matrix;
 					
-					geometry.applyMatrix(matrix);					
+					geometry.applyMatrix(matrix);	
+					if(index==0){						
+						mat_offs = matrix.clone();
+					}
+					//---- TEMP ----//
+					geometry.applyMatrix(new THREE.Matrix4().getInverse(mat_offs));	
+					geometry.applyMatrix(new THREE.Matrix4().makeRotationX( Math.PI/2 ));	
+					//---- TEMP ----//
 					var pointcloud = new THREE.Points(geometry, point_cloud_material);
 					union_street_view.add(pointcloud);
 											
@@ -178,23 +185,24 @@
 										
 					// Sequence Download Pano
 					console.log(index, pathLen);
-					if(index==0){						
-						mat_offs = matrix.clone();
-					}
 					if(index+1<pathLen){
 						index++;
 						auto_center_street(panoSet[Object.keys(panoSet)[index]].lat, panoSet[Object.keys(panoSet)[index]].lon, index);	
 					}
 					else{	
-						console.log(panoSet);					
+						console.log(panoSet);				
 						$.each(actual_JSON, function(keyFrame, valFrame){	
 							$.each(valFrame, function(keyLocation, valLocation){
 								XYZobj[keyFrame][keyLocation] = [];
 								for(var i=0; i<valLocation.length; i++)	{
-									XYZobj[keyFrame][keyLocation].push(panoSet[keyLocation].buffer_geometry.attributes.position.array[valLocation[i]*3]);
-									XYZobj[keyFrame][keyLocation].push(panoSet[keyLocation].buffer_geometry.attributes.position.array[valLocation[i]*3+1]);
-									XYZobj[keyFrame][keyLocation].push(panoSet[keyLocation].buffer_geometry.attributes.position.array[valLocation[i]*3+2]);																											
-								}				
+									//XYZobj[keyFrame][keyLocation].push(panoSet[keyLocation].buffer_geometry.attributes.position.array[valLocation[i]*3]);
+									//XYZobj[keyFrame][keyLocation].push(panoSet[keyLocation].buffer_geometry.attributes.position.array[valLocation[i]*3+1]);
+									//XYZobj[keyFrame][keyLocation].push(panoSet[keyLocation].buffer_geometry.attributes.position.array[valLocation[i]*3+2]);																											
+									XYZobj[keyFrame][keyLocation][i*3+0] = (panoSet[keyLocation].buffer_geometry.attributes.position.array[valLocation[i]*3]);
+									XYZobj[keyFrame][keyLocation][i*3+1] = (panoSet[keyLocation].buffer_geometry.attributes.position.array[valLocation[i]*3+1]);
+									XYZobj[keyFrame][keyLocation][i*3+2] = (panoSet[keyLocation].buffer_geometry.attributes.position.array[valLocation[i]*3+2]);																											
+									
+								}									
 							});	
 						});													
 						console.log(XYZobj);	
@@ -262,6 +270,7 @@
 					panoSet[guiView.location].buffer_geometry.attributes.position.array[index*3 + 1],
 					panoSet[guiView.location].buffer_geometry.attributes.position.array[index*3 + 2]
 				)
+				console.log(singleXYZ);				
 				transXYZ = singleXYZ.clone().applyProjection(new THREE.Matrix4().getInverse(mat_offs));
 				if(!trans){				
 					guiView.ptX = singleXYZ.x;
@@ -431,9 +440,8 @@
 				else {
 					// code for IE6, IE5
 					xmlhttp = new ActiveXObject("Microsoft.XMLHTTP");
-				}	
-				//var url = "json/test.json";
-				var url = "json/info_3d_hog_00002.json";
+				}					
+				var url = "json/info_3d_hog_00002_new.json";
 				//var url = "json/info_3d_hog_00004.json";
 
 				xmlhttp.onreadystatechange = function() {

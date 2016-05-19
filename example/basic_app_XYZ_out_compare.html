@@ -1,0 +1,744 @@
+<!DOCTYPE html>
+<html lang="en">
+	<head>
+		<title>basic_app_XYZ_out_compare</title>
+		<meta charset="utf-8">
+		<meta name="viewport" content="width=device-width, user-scalable=no, minimum-scale=1.0, maximum-scale=1.0">
+		<link rel="stylesheet" type="text/css" href="mystyle.css">
+	</head>
+
+	<body>
+		<div id="container" style="position:absolute; top:20px"></div>
+		<div id="pano_container" class="hide"></div>	
+		<div id="depth_container" class="hide"></div>
+				
+		<script src="../libs/mrdoob-three.js-5c6ec4a/examples/../build/three.min.js"></script>
+
+		<script src="../libs/mrdoob-three.js-5c6ec4a/examples/js/controls/OrbitControls.js"></script>
+		<script src="../libs/mrdoob-three.js-5c6ec4a/examples/js/Detector.js"></script>
+		<script src="../libs/mrdoob-three.js-5c6ec4a/examples/js/libs/stats.min.js"></script>
+		
+		<script type="text/javascript" src="https://maps.googleapis.com/maps/api/js?v=3.exp&sensor=false"></script>
+		
+		<script type="text/javascript" src="../libs/dat.gui.min.js"></script>		
+
+		<script src="../libs/GSVPanoDepth.js-master/examples/js/jquery.min.js" type="text/javascript"></script>
+		<script src="../libs/GSVPanoDepth.js-master/examples/js/jquery.base64.min.js" type="text/javascript"></script>
+		<script src="../libs/GSVPanoDepth.js-master/examples/js/zpipe.min.js" type="text/javascript"></script>
+
+		<script src="js/GSVPano_my.js" type="text/javascript"></script>
+		<script src="js/GSVPanoDepth_my.js" type="text/javascript"></script>	
+		
+		<script>				
+			
+			if ( ! Detector.webgl ) Detector.addGetWebGLMessage();
+			//THREE.js
+			var camera, controls, scene, renderer, raycaster, stats;
+			//GOOGLE
+			var svs = new google.maps.StreetViewService();
+			//DAT			
+			var guiText = function() {
+			  this.imageFrame = '';
+			  this.location = '';
+			  this.ptIndex = '';
+			  this.ptX = '';
+			  this.ptY = '';
+			  this.ptZ = '';
+			  this.pano_x = '0';
+			  this.pano_y = '0';
+			  this.depth_x = '0';
+			  this.depth_y = '0';
+			  this.slPt = function(){
+				selectPt();
+			  }
+			  this.slGroup = function(){
+				selectGroup();
+			  }
+			  this.dlPt = function(){		
+				downloadPt();
+			  };
+			};	
+			var gui, f_baisc, f_select, f_show, f_download, guiView = new guiText(), show_pano = false, show_depth = false, trans = false, color_2 = false;	
+			//POINT CLOUD	
+			var point_cloud_material, point_size = 0.1;		
+			var street_view_heading_set = new THREE.Object3D();		
+			var union_street_view = new THREE.Object3D();
+			//----- POINT CLOUD COMPOSE -----	
+			var pano_container = document.getElementById('pano_container'), dpeth_container = document.getElementById('depth_container');
+			var earthR = 6371000, normal_offs, mat_offs;
+			//APP
+			var actual_JSON, XYZobj, actual_JSON_rs, XYZobj_rs, singleXYZ, transXYZ;
+			var selFrame, selLoc, selIndex;
+			var single_line = new THREE.Object3D(), root_group_line = new THREE.Object3D();
+			var	panoSet = {};
+			//COMPARE
+			var matrix_rs = new THREE.Matrix4().set(
+			 9.61690940e-02,   1.48431262e-02,  -9.39159875e-02,  -1.36164799e+01,
+			-2.14861163e-01,  -9.44171778e-02,   9.74915384e-02,   2.85855650e+01,
+			-5.01970971e-02,   4.05929656e-03,  -1.67973562e-01,  -1.53877386e+01,
+			 0.00000000e+00,   0.00000000e+00,   0.00000000e+00,   1.00000000e+00);
+			var color_rs, color_rs_2;
+			//Interactive	
+			var pointcloud_rs;
+			var raycaster, mouse;
+			var intersects, INTERSECTED;
+			
+			var intersection = null;
+			var spheres = [];
+			var spheresIndex = 0;
+			var clock;
+			
+			init();
+			animate();	
+					
+			function init() {
+							
+				//loadJSON();		
+				matrix_rs.transpose();
+				loadJSON_rs();			
+				THREE_scene_init();		
+				DAT_view();
+							
+				//----- EVENT LISTENER -----
+				window.addEventListener( 'resize', onWindowResize, false );
+				document.addEventListener('mousedown', on_document_mouse_down, false);
+				document.addEventListener('mousemove', onDocumentMouseMove, false );
+			}	
+			function auto_center_street(lat, lon, index){				
+				//----- EACH SINGLE STREETVIEW -----				
+				var street_view = new THREE.Object3D();						
+				var street_view_heading = new THREE.Object3D();		
+				var img_canvas_context = 0, main_rotation = 0;
+				var pano_loader = new GSVPANO.PanoLoader({
+					zoom: 1
+				});
+				var depth_loader = new GSVPANO.PanoDepthLoader();	
+				//World Axis to THREE.js Axis
+				var wT = new THREE.Vector3;
+				computeWorldAxis(lat, lon, wT);		
+				panoSet[Object.keys(panoSet)[index]].normal = wT.clone();	
+				if(index==0){
+					normal_offs = new THREE.Vector3(wT.x, wT.y, wT.z);							
+				}
+				//----- LOAD PANO -----
+				pano_loader.load(new google.maps.LatLng(lat,lon));
+				pano_loader.onPanoramaLoad = function () {
+					// Get Panoramic
+					pano_container.appendChild(this.canvas);	
+					panoSet[Object.keys(panoSet)[index]].panoC = this.canvas;
+					// Store PANO and HEADING, then call depth_loader
+					img_canvas_context = this.canvas.getContext('2d');
+					main_rotation = this.data.tiles.centerHeading;
+					panoSet[Object.keys(panoSet)[index]].rotation = -main_rotation * Math.PI / 180.0;
+					depth_loader.load(this.panoId);
+				};				
+				//----- LOAD DEPTH -----
+				depth_loader.onDepthLoad = function () {
+					// Ground Map
+					var color_data = img_canvas_context.getImageData(0, 0, img_canvas_context.canvas.width, img_canvas_context.canvas.height).data;									
+					drawDepthMap(this.depthMap);
+					panoSet[Object.keys(panoSet)[index]].depthC = depth_container.children[index];
+					// Create Point Cloud
+					var geometry = new THREE.BufferGeometry();
+					var geometryTexture = new THREE.BufferGeometry();
+					var num_points = this.depthMap.width * this.depthMap.height;
+					var positions = new Float32Array(num_points * 3);
+					var colors = new Float32Array(num_points * 3);					
+					var n = 0;						
+					for (var y = 0; y < this.depthMap.height; ++y) {
+						var lat = -(y / this.depthMap.height) * 180.0 + 90.0;
+						var r = Math.cos(lat * Math.PI / 180.0);
+						for (var x = 0; x < this.depthMap.width; ++x) {	
+							var depth = parseFloat(this.depthMap.depthMap[y * this.depthMap.width + x]);							
+							// Panoromic to Spherical							
+							var lng = (x / this.depthMap.width) * 360.0 - 180.0;
+							// Spherical Axis to THREE.js Axis
+							var pos = new THREE.Vector3();
+							pos.y = Math.sin(lat * Math.PI / 180.0);
+							pos.x = (r * Math.sin(lng * Math.PI / 180.0));
+							pos.z = -(r * Math.cos(lng * Math.PI / 180.0)); // IMPORTANT!!!!
+							// Multiple by Depth
+							pos.multiplyScalar(depth);
+							// Store Position and Color of Each Point
+							positions[3 * n + 0] = isNaN(pos.x) ? 0 : pos.x;
+							positions[3 * n + 1] = isNaN(pos.y) ? 0 : pos.y;
+							positions[3 * n + 2] = isNaN(pos.z) ? 0 : pos.z;
+							var color_canvas_x = parseInt((x / this.depthMap.width) * img_canvas_context.canvas.width);
+							var color_canvas_y = parseInt((y / this.depthMap.height) * img_canvas_context.canvas.height);
+							var color_index = color_canvas_y * img_canvas_context.canvas.width * 4 + color_canvas_x * 4;							
+							colors[3 * n + 0] = (color_data[color_index + 0]) / 255.0;
+							colors[3 * n + 1] = (color_data[color_index + 1]) / 255.0;
+							colors[3 * n + 2] = (color_data[color_index + 2]) / 255.0;											
+							n++;
+						}
+					}						
+					// Point Cloud geometry
+					geometry.addAttribute('position', new THREE.BufferAttribute(positions, 3));
+					geometry.addAttribute('color', new THREE.BufferAttribute(colors, 3));
+					geometry.computeBoundingBox();								
+					
+						
+					//----- World objects Regeisterd in GLWorld -----		
+					street_view.rotation.y = -main_rotation * Math.PI / 180.0;	
+					registeredInGLWorld(wT, street_view_heading);
+				
+					street_view.updateMatrix();
+					street_view_heading.updateMatrix();	
+					var matrix = new THREE.Matrix4().multiplyMatrices(street_view_heading.matrix, street_view.matrix);	
+					panoSet[Object.keys(panoSet)[index]].matrix = matrix;
+					
+					geometry.applyMatrix(matrix);					
+					var pointcloud = new THREE.Points(geometry, point_cloud_material);
+					union_street_view.add(pointcloud);
+											
+					
+					panoSet[Object.keys(panoSet)[index]].buffer_geometry = geometry;					
+					
+										
+					// Sequence Download Pano
+					console.log(index, pathLen);
+					if(index==0){						
+						mat_offs = matrix.clone();
+					}
+					if(index+1<pathLen){
+						index++;
+						auto_center_street(panoSet[Object.keys(panoSet)[index]].lat, panoSet[Object.keys(panoSet)[index]].lon, index);	
+					}
+					else{	
+						console.log(panoSet);					
+						$.each(actual_JSON, function(keyFrame, valFrame){	
+							$.each(valFrame, function(keyLocation, valLocation){
+								XYZobj[keyFrame][keyLocation] = [];
+								for(var i=0; i<valLocation.length; i++)	{
+									XYZobj[keyFrame][keyLocation].push(panoSet[keyLocation].buffer_geometry.attributes.position.array[valLocation[i]*3]);
+									XYZobj[keyFrame][keyLocation].push(panoSet[keyLocation].buffer_geometry.attributes.position.array[valLocation[i]*3+1]);
+									XYZobj[keyFrame][keyLocation].push(panoSet[keyLocation].buffer_geometry.attributes.position.array[valLocation[i]*3+2]);																											
+								}				
+							});	
+						});													
+						console.log(XYZobj);	
+						f_confirm.add(guiView, "slPt", false).name("Select point");	
+						f_confirm.add(guiView, "slGroup", false).name("Select group");	
+						f_download.add(guiView, "dlPt").name("Download pt");	
+					}				
+				}	
+			}	
+			function downloadPt(){
+				var hiddenElement = document.createElement('a');
+				console.log('start');				
+				var XYZdata = "text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(XYZobj));				
+				console.log('finish');
+				hiddenElement.href = 'data:' + XYZdata;				
+				hiddenElement.innerHTML = 'download JSON';
+				hiddenElement.target = '_blank';
+				hiddenElement.download = 'data.json';
+				hiddenElement.click();
+				console.log('download');				
+			}
+			function selectPt() {	
+				if(guiView.location == '' || guiView.ptIndex == ''){
+					guiView.ptX = 'select point first';
+					guiView.ptY = 'select point first';
+					guiView.ptZ = 'select point first';
+					return ;
+				}
+				var index = parseInt(guiView.ptIndex);		
+				
+				var canvasDsrc = panoSet[guiView.location].depthC;
+				var canvas = document.createElement("canvas");		
+				canvas.width = canvasDsrc.width;
+				canvas.height = canvasDsrc.height;
+				guiView.depth_y = parseInt(index / canvas.width);							
+				guiView.depth_x = parseInt(index % canvas.width);
+				var context = canvas.getContext('2d');		
+				context.drawImage(canvasDsrc, 0, 0);				
+				context.fillStyle = "#FF0000";
+				context.fillRect(guiView.depth_x-5,guiView.depth_y-5,10,10);		
+				while (depth_container.firstChild) {
+					depth_container.removeChild(depth_container.firstChild);
+				}
+				depth_container.appendChild(canvas);			
+				
+				
+				
+				var canvasPsrc = panoSet[guiView.location].panoC;
+				var canvasP = document.createElement("canvas");
+				canvasP.width = canvasPsrc.width;
+				canvasP.height = canvasPsrc.height;
+				guiView.pano_x = parseInt(guiView.depth_x / canvas.width * canvasP.width);
+				guiView.pano_y = parseInt(guiView.depth_y / canvas.height * canvasP.height);
+				var context = canvasP.getContext('2d');		
+				context.drawImage(canvasPsrc, 0, 0);
+				context.fillStyle = "#FF0000";
+				context.fillRect(guiView.pano_x-5,guiView.pano_y-5,10,10);	
+				while (pano_container.firstChild) {
+					pano_container.removeChild(pano_container.firstChild);
+				}
+				pano_container.appendChild(canvasP);
+				
+				singleXYZ = new THREE.Vector3(
+					panoSet[guiView.location].buffer_geometry.attributes.position.array[index*3],
+					panoSet[guiView.location].buffer_geometry.attributes.position.array[index*3 + 1],
+					panoSet[guiView.location].buffer_geometry.attributes.position.array[index*3 + 2]
+				)
+				transXYZ = singleXYZ.clone().applyProjection(new THREE.Matrix4().getInverse(mat_offs));
+				if(!trans){				
+					guiView.ptX = singleXYZ.x;
+					guiView.ptY = singleXYZ.y;
+					guiView.ptZ = singleXYZ.z;
+				}
+				else{
+					guiView.ptX = transXYZ.x;
+					guiView.ptY = transXYZ.y;
+					guiView.ptZ = transXYZ.z;
+				}
+				var material = new THREE.LineBasicMaterial({ color: 0x0000ff }); 
+				var geometry = new THREE.Geometry(); 
+				geometry.vertices.push( 
+					new THREE.Vector3( panoSet[guiView.location].normal.x - normal_offs.x, panoSet[guiView.location].normal.y - normal_offs.y, panoSet[guiView.location].normal.z - normal_offs.z ),
+					new THREE.Vector3(  singleXYZ.x, singleXYZ.y, singleXYZ.z)
+				); 
+				
+				var line = new THREE.Line( geometry, material ); 
+				while(single_line.children.length>0){
+					single_line.remove(single_line.children[0]);
+				}
+				single_line.add( line );	
+			};		
+			function selectGroup() {			
+				if(guiView.imageFrame == ''){
+					guiView.ptX = 'select frame first';
+					guiView.ptY = 'select frame first';
+					guiView.ptZ = 'select frame first';
+					return ;
+				}
+				var selFrame = actual_JSON[guiView.imageFrame];
+				
+				
+				var canvasDsrc = panoSet[guiView.location].depthC;
+				var canvas = document.createElement("canvas");		
+				canvas.width = canvasDsrc.width;
+				canvas.height = canvasDsrc.height;			
+				var contextD = canvas.getContext('2d');		
+				contextD.drawImage(canvasDsrc, 0, 0);		
+				
+				var canvasPsrc = panoSet[guiView.location].panoC;
+				var canvasP = document.createElement("canvas");
+				canvasP.width = canvasPsrc.width;
+				canvasP.height = canvasPsrc.height;
+				var contextP = canvasP.getContext('2d');		
+				contextP.drawImage(canvasPsrc, 0, 0);
+				
+					
+				
+				var group_line = new THREE.Object3D();
+				$.each(selFrame, function(keyLocation, valLocation){
+					for(var i=0; i<valLocation.length; i++)	{
+						var index = selFrame[keyLocation][i];
+						
+						guiView.depth_y = parseInt(index / canvas.width);							
+						guiView.depth_x = parseInt(index % canvas.width);			
+						contextD.fillStyle = "#FF0000";
+						contextD.fillRect(guiView.depth_x-2,guiView.depth_y-2,4,4);		
+
+						guiView.pano_x = parseInt(guiView.depth_x / canvas.width * canvasP.width);
+						guiView.pano_y = parseInt(guiView.depth_y / canvas.height * canvasP.height);
+						contextP.fillStyle = "#FF0000";
+						contextP.fillRect(guiView.pano_x-2,guiView.pano_y-2,4,4);
+						
+						var XYZ = new THREE.Vector3(
+							panoSet[keyLocation].buffer_geometry.attributes.position.array[index*3],
+							panoSet[keyLocation].buffer_geometry.attributes.position.array[index*3 + 1],
+							panoSet[keyLocation].buffer_geometry.attributes.position.array[index*3 + 2]
+						)
+						
+						var material = new THREE.LineBasicMaterial({ color: 0x00ff00 }); 
+						var geometry = new THREE.Geometry(); 
+						geometry.vertices.push( 
+							new THREE.Vector3( panoSet[keyLocation].normal.x - normal_offs.x, panoSet[keyLocation].normal.y - normal_offs.y, panoSet[keyLocation].normal.z - normal_offs.z ),
+							new THREE.Vector3(  XYZ.x, XYZ.y, XYZ.z)
+						); 				
+						
+						var line = new THREE.Line( geometry, material ); 
+						group_line.add( line );	
+					}			
+				});		
+				while(root_group_line.children.length>0){
+					root_group_line.remove(root_group_line.children[0]);
+				}
+				root_group_line.add(group_line);
+				
+						
+				while (depth_container.firstChild) {
+					depth_container.removeChild(depth_container.firstChild);
+				}
+				depth_container.appendChild(canvas);	
+				
+				while (pano_container.firstChild) {
+					pano_container.removeChild(pano_container.firstChild);
+				}
+				pano_container.appendChild(canvasP);
+			};				
+			function SelectTree(value){
+				while(single_line.children.length>0){
+					single_line.remove(single_line.children[0]);
+				}
+				while(root_group_line.children.length>0){
+					root_group_line.remove(root_group_line.children[0]);
+				}
+				
+				selLoc = []; var KF = value;
+				for(var i in f_select.__controllers){
+					if(f_select.__controllers[i].property == 'location'){
+						f_select.__controllers[i].remove();
+						guiView.location = '';
+						break;
+					}
+				}
+				for(var i in f_select.__controllers){
+					if(f_select.__controllers[i].property == 'ptIndex'){
+						f_select.__controllers[i].remove();	
+						guiView.ptIndex = '';
+						break;
+					}
+				}
+				$.each(actual_JSON[value], function(keyLocation, valLocation){
+					selLoc.push(keyLocation);
+				});	
+				f_select.add(guiView, 'location', selLoc).onChange(function (value) {
+					selIndex = [];						
+					for(var i in f_select.__controllers){
+						if(f_select.__controllers[i].property == 'ptIndex'){
+							f_select.__controllers[i].remove();	
+							guiView.ptIndex = '';
+							break;
+						}
+					}
+					for(var i=0; i<actual_JSON[KF][value].length; i++)	{
+						selIndex.push(actual_JSON[KF][value][i])
+					}
+					f_select.add(guiView, 'ptIndex', selIndex).onChange(function (value) {
+					
+					});
+				});					
+				f_select.add(guiView, 'ptIndex', []);	
+			}
+			function parseJSON(){	
+				selFrame = [];
+				$.each(actual_JSON, function(keyFrame, valFrame){
+					selFrame.push(keyFrame);
+					$.each(valFrame, function(keyLocation, valLocation){
+						if(panoSet[keyLocation] == undefined){
+							var loc = keyLocation.split(",")	
+							panoSet[keyLocation] = {lat:parseFloat(loc[0]), lon:parseFloat(loc[1])};												
+						}	
+					});		
+				});		
+				f_select.add(guiView, 'imageFrame', selFrame).onChange(function (value) {
+					SelectTree(value);
+				});		
+				f_select.add(guiView, 'location', []);	
+				f_select.add(guiView, 'ptIndex', []);			
+				pathLen = Object.keys(panoSet).length;	
+				auto_center_street(panoSet[Object.keys(panoSet)[0]].lat, panoSet[Object.keys(panoSet)[0]].lon, 0);				
+			}			
+			function loadJSON(callback) {   
+				var xmlhttp;
+				if (window.XMLHttpRequest) {
+					xmlhttp = new XMLHttpRequest();
+				} 
+				else {
+					// code for IE6, IE5
+					xmlhttp = new ActiveXObject("Microsoft.XMLHTTP");
+				}	
+				//var url = "json/test.json";
+				var url = "json/info_3d_hog_00002.json";
+				//var url = "json/info_3d_hog_00004.json";
+
+				xmlhttp.onreadystatechange = function() {
+					if (xmlhttp.readyState == 4 && xmlhttp.status == 200) {
+						actual_JSON = JSON.parse(xmlhttp.responseText);
+						XYZobj = JSON.parse(xmlhttp.responseText);
+						parseJSON();
+					}
+				};
+				xmlhttp.open("GET", url, true);
+				xmlhttp.send();
+			}	
+
+			function parseJSON_rs(){	
+				var points_rs = actual_JSON_rs[0]['points'];
+				var id_rs = [], xyz_rs = [];
+				
+				var geometry = new THREE.Geometry();
+				$.each(points_rs, function(keyID, valID){
+					id_rs.push(keyID);					
+				});	
+				
+				var geometry = new THREE.BufferGeometry();
+				var geometryTexture = new THREE.BufferGeometry();
+				var num_points = id_rs.length;
+				var positions = new Float32Array(num_points * 3);
+				color_rs = 	new Float32Array(num_points * 3);	
+				color_rs_2 = 	new Float32Array(num_points * 3);	
+
+				for(var n=0; n<num_points; n++){
+					valID = points_rs[id_rs[n]];
+					positions[3*n + 0] = (valID.coordinates[0]);
+					positions[3*n + 1] = (valID.coordinates[1]);
+					positions[3*n + 2] = (valID.coordinates[2]);	
+					//console.log(id_rs[n], valID);
+					//console.log(positions[3*n + 0], positions[3*n + 1], positions[3*n + 2]);
+					color_rs[3*n + 0] = valID.color[0]/255;
+					color_rs[3*n + 1] = valID.color[1]/255;
+					color_rs[3*n + 2] = valID.color[2]/255;
+					color_rs_2[3*n + 0] = 1;
+					color_rs_2[3*n + 1] = 0;
+					color_rs_2[3*n + 2] = 0;
+				}				
+				//console.log(geometry);	
+				geometry.addAttribute('position', new THREE.BufferAttribute(positions, 3));
+				geometry.addAttribute('color', new THREE.BufferAttribute(color_rs, 3));
+				
+				console.log(id_rs[0], points_rs[id_rs[0]]);
+				console.log(geometry.getAttribute('position').array[0], geometry.getAttribute('position').array[1], geometry.getAttribute('position').array[2]);
+				//geometry.applyMatrix(new THREE.Matrix4().getInverse(matrix_rs));
+				//geometry.applyMatrix(matrix_rs);
+				//geometry.updateMatrix();
+				console.log( geometry.getAttribute('position').array[0], geometry.getAttribute('position').array[1], geometry.getAttribute('position').array[2]);
+				
+				geometry.computeBoundingBox();	
+				//var pointcloud = new THREE.Points(geometry, point_cloud_material);
+				pointcloud_rs = new THREE.Points(geometry, point_cloud_material);
+				union_street_view.add(pointcloud_rs);
+			}			
+			function loadJSON_rs(callback) {   
+				var xmlhttp;
+				if (window.XMLHttpRequest) {
+					xmlhttp = new XMLHttpRequest();
+				} 
+				else {
+					// code for IE6, IE5
+					xmlhttp = new ActiveXObject("Microsoft.XMLHTTP");
+				}	
+				//var url = "json/test.json";
+				var url = "json/reconstruction.json";
+
+				xmlhttp.onreadystatechange = function() {
+					if (xmlhttp.readyState == 4 && xmlhttp.status == 200) {
+						actual_JSON_rs = JSON.parse(xmlhttp.responseText);
+						XYZobj_rs = JSON.parse(xmlhttp.responseText);
+						parseJSON_rs();
+					}
+				};
+				xmlhttp.open("GET", url, true);
+				xmlhttp.send();
+			}			
+			function registeredInGLWorld(wT, street_view_heading){
+				street_view_heading.lookAt(wT);
+				street_view_heading.rotateOnAxis(new THREE.Vector3(1,0,0), Math.PI/2);
+				street_view_heading.position.x = wT.x - normal_offs.x;
+				street_view_heading.position.y = wT.y - normal_offs.y;
+				street_view_heading.position.z = wT.z - normal_offs.z;			
+			}			
+			function computeWorldAxis(lat, lon, wT){				
+				var wX, wY, wZ, wR;
+				wR = earthR*Math.cos(lat * Math.PI / 180.0);
+				wY = earthR*Math.sin(lat * Math.PI / 180.0);
+				wX = wR*Math.sin(lon * Math.PI / 180.0);
+				wZ = wR*Math.cos(lon * Math.PI / 180.0);
+				wT.x = wX; wT.y = wY; wT.z = wZ;
+			}				
+			function drawDepthMap(depthMap){
+				var canvas = document.createElement("canvas");
+				var context = canvas.getContext('2d');
+				canvas.setAttribute('width', depthMap.width);
+				canvas.setAttribute('height', depthMap.height);
+				var image = context.getImageData(0, 0, depthMap.width, depthMap.height);
+				for (var y = 0; y < depthMap.height; ++y) {
+					for (var x = 0; x < depthMap.width; ++x) {
+						var col = depthMap.depthMap[y * depthMap.width + x] / 50 * 255;
+						image.data[4 * (y * depthMap.width + x) + 0] = col;
+						image.data[4 * (y * depthMap.width + x) + 1] = col;
+						image.data[4 * (y * depthMap.width + x) + 2] = col;
+						image.data[4 * (y * depthMap.width + x) + 3] = 255;
+					}
+				}					
+				context.putImageData(image, 0, 0);
+				vdpeth_container = document.getElementById('depth_container');
+				depth_container.appendChild(canvas);				
+			}			
+			function DAT_view(){
+				//----- DAT GUI -----
+				gui = new dat.GUI();
+				f_baisc = gui.addFolder('Basic');
+				f_baisc.open();
+				f_select = gui.addFolder('Select');
+				f_select.open();
+				f_confirm = gui.addFolder('Confirm');
+				f_confirm.open();
+				f_show = gui.addFolder('XYZ (read only)');
+				f_show.open();
+				f_download = gui.addFolder('download');
+				f_download.open();
+				
+				f_baisc.add(this, "point_size", 0.1, 2.0).name("Point size").onChange(function (value) {
+					point_cloud_material.size = point_size;
+				});	
+				f_baisc.add(this, "show_pano", false).name("Show pano image").onChange(function (value) {
+					if (value)
+						document.getElementById("pano_container").className = "show";
+					else
+						document.getElementById("pano_container").className = "hide";
+				});
+				f_baisc.add(this, "show_depth", false).name("Show depth").onChange(function (value) {
+					if (value)
+						document.getElementById("depth_container").className = "show";
+					else
+						document.getElementById("depth_container").className = "hide";
+				});			
+				f_baisc.add(this, "trans", false).name("Axis trans").onChange(function (value) {
+					if (value){
+						union_street_view.applyMatrix(new THREE.Matrix4().getInverse(mat_offs));
+						if(guiView.ptX != ''){
+						console.log(guiView.ptX);
+							guiView.ptX = transXYZ.x;
+							guiView.ptY = transXYZ.y;
+							guiView.ptZ = transXYZ.z;
+						}
+					}						
+					else{
+						union_street_view.applyMatrix(mat_offs);
+						if(guiView.ptX != ''){
+							guiView.ptX = singleXYZ.x;
+							guiView.ptY = singleXYZ.y;
+							guiView.ptZ = singleXYZ.z;
+						}
+					}						
+				});	
+				f_baisc.add(this, "color_2", false).name("Color trans").onChange(function (value) {
+					if(value){
+						pointcloud_rs.geometry.removeAttribute ( 'color' )	
+						pointcloud_rs.geometry.addAttribute('color', new THREE.BufferAttribute(color_rs_2, 3));
+						pointcloud_rs.geometry.attributes.color.needsUpdate = true;					
+					}	
+					else{
+						pointcloud_rs.geometry.removeAttribute ( 'color' )	
+						pointcloud_rs.geometry.addAttribute('color', new THREE.BufferAttribute(color_rs, 3));
+						pointcloud_rs.geometry.attributes.color.needsUpdate = true;
+					}					
+				});	
+				f_show.add(guiView, 'ptX').listen();
+				f_show.add(guiView, 'ptY').listen();
+				f_show.add(guiView, 'ptZ').listen();
+			}
+			function THREE_scene_init(){
+				//----- THREE.JS OBJECT -----
+				// Scene Create
+				scene = new THREE.Scene();
+				// Render
+				renderer = new THREE.WebGLRenderer({
+					antialias: true
+				});				
+				renderer.setClearColor( 0xffffff );
+				renderer.setSize(window.innerWidth, window.innerHeight);
+				// Container Created
+				var container = document.getElementById( 'container' );
+				container.appendChild( renderer.domElement );	
+				// Camera Setting				
+				camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 1, 10000);
+				camera.position.set(0, 50, 0);
+				camera.lookAt(0.0, 0.0, 0.0);
+				camera.up.set(0.0, 1.0, 0.0)
+				// Lights	
+				light = new THREE.AmbientLight( 0xffffff );
+				scene.add( light );
+				// Controls && Project
+				controls = new THREE.OrbitControls(camera, renderer.domElement);
+				raycaster = new THREE.Raycaster();
+				// State Monitor
+				stats = new Stats();
+				stats.domElement.style.position = 'absolute';
+				stats.domElement.style.top = '0px';
+				stats.domElement.style.zIndex = 100;
+				container.appendChild( stats.domElement );			
+				// point cloud material
+				point_cloud_material = new THREE.PointsMaterial({
+					size: point_size,
+					vertexColors: true,
+					sizeAttenuation: true,
+					fog: true
+				});					
+				// Point Cloud Objects
+				scene.add(street_view_heading_set);		
+				scene.add(union_street_view);
+				union_street_view.add(single_line);
+				union_street_view.add(root_group_line);
+				// world (x-z plane)
+				var gridXZ = new THREE.GridHelper(1000, 50);
+				gridXZ.setColors( new THREE.Color(0xff0000), new THREE.Color(0xffffff) );
+				scene.add(gridXZ);		
+				
+				interActivesetting();			
+			}		
+			function interActivesetting(){
+				var sphereGeometry = new THREE.SphereGeometry( 0.1, 32, 32 );
+				var sphereMaterial = new THREE.MeshBasicMaterial( { color: 0xff0000, shading: THREE.FlatShading } );
+
+				for ( var i = 0; i < 40; i++ ) {
+
+					var sphere = new THREE.Mesh( sphereGeometry, sphereMaterial );
+					scene.add( sphere );
+					spheres.push( sphere );
+
+				}
+				raycaster = new THREE.Raycaster();
+				raycaster.params.Points.threshold = point_size;
+				mouse = new THREE.Vector2();
+			}			
+			function onDocumentMouseMove( event ) {
+
+				event.preventDefault();
+
+				mouse.x = ( event.clientX / window.innerWidth ) * 2 - 1;
+				mouse.y = - ( event.clientY / window.innerHeight ) * 2 + 1;
+			}		
+			function onWindowResize() {
+				camera.aspect = window.innerWidth / window.innerHeight;
+				camera.updateProjectionMatrix();
+				renderer.setSize( window.innerWidth, window.innerHeight );
+			}
+			function animate() {
+				requestAnimationFrame( animate );
+				controls.update(); // required if controls.enableDamping = true, or if controls.autoRotate = true
+				stats.update();
+				
+				render();
+			}
+			function render() {
+			
+				if(pointcloud_rs != undefined){
+					var geometry = pointcloud_rs.geometry;
+					var attributes = geometry.attributes;
+					raycaster.params.Points.threshold = point_size;
+					raycaster.setFromCamera( mouse, camera );
+
+					intersects = raycaster.intersectObject( pointcloud_rs );
+					
+					for ( var i = 0; i < intersects.length; i++ ) {
+						var inter_idx = intersects[ i ].index;
+						attributes.color.array[3*inter_idx + 0] = 1;
+						attributes.color.array[3*inter_idx + 1] = 0;
+						attributes.color.array[3*inter_idx + 2] = 0;
+					
+					}
+					attributes.color.needsUpdate = true;
+					
+				}	
+				renderer.render( scene, camera );
+			}			
+			function on_document_mouse_down(event) {			
+			}
+		</script>
+	</body>
+</html>

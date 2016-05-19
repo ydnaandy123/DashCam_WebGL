@@ -131,7 +131,7 @@ GSVPANO.PanoDepthLoader = function (parameters) {
             sin_phi[x] = Math.sin(phi);
             cos_phi[x] = Math.cos(phi);
         }
-
+		//console.log(sin_theta, cos_theta, sin_phi, cos_phi);
         for(y=0; y<h; ++y) {
             for(x=0; x<w; ++x) {
                 planeIdx = indices[y*w + x];

@@ -466,7 +466,7 @@
 								f.vertexColors[ j ] = geometry.colors[vertexIndex];
 							}
 						}														
-						//scene.add(plane)
+						scene.add(plane)
 						
 						var bbox = new THREE.BoundingBoxHelper( root_street_view_set, new THREE.Color(0xFF9900));
 						bbox.visible = false;
@@ -474,7 +474,7 @@
 						//root_street_view.add( bbox );	
 						var boxHelper = new THREE.BoxHelper( bbox ); // to remove the diagonals
 						boxHelper.material.color.set( 0xff9000 );
-						//scene.add( boxHelper );						
+						scene.add( boxHelper );						
 					}					
 				}
 				root_street_view_set.add(root_street_view);	
