@@ -58,10 +58,11 @@
 				downloadPt();
 			  };
 			};	
-			var gui, f_baisc, f_select, f_show, f_download, guiView = new guiText(), show_pano = false, show_depth = false, trans = false, color_2 = false;	
+			var gui, f_baisc, f_select, f_show, f_download, guiView = new guiText(), show_pano = false, show_depth = false, trans = true, align = true, color_2 = false;	
 			//POINT CLOUD	
 			var point_cloud_material, point_size = 0.1;		
-			var street_view_heading_set = new THREE.Object3D();		
+			var street_view_heading_set = new THREE.Object3D();	
+			var pointcloud_rs_view = new THREE.Object3D();			
 			var union_street_view = new THREE.Object3D();
 			//----- POINT CLOUD COMPOSE -----	
 			var pano_container = document.getElementById('pano_container'), dpeth_container = document.getElementById('depth_container');
@@ -73,10 +74,10 @@
 			var	panoSet = {};
 			//COMPARE
 			var matrix_rs = new THREE.Matrix4().set(
-			 9.61690940e-02,   1.48431262e-02,  -9.39159875e-02,  -1.36164799e+01,
-			-2.14861163e-01,  -9.44171778e-02,   9.74915384e-02,   2.85855650e+01,
-			-5.01970971e-02,   4.05929656e-03,  -1.67973562e-01,  -1.53877386e+01,
-			 0.00000000e+00,   0.00000000e+00,   0.00000000e+00,   1.00000000e+00);
+			 4.47947979e-01,  -6.06087558e-02,   0.00000000e+00,   9.06066418e-01,
+			 1.67470425e-03,   4.28709924e-01,   0.00000000e+00,  -2.61783848e+01,
+			 0.00000000e+00,   0.00000000e+00,   5.35921395e-01,  -2.96958852e+00,
+			 0.00000000e+00,   0.00000000e+00,   0.00000000e+00,   1.00000000e+00).transpose();	 
 			var color_rs, color_rs_2;
 			//Interactive	
 			var pointcloud_rs;
@@ -93,7 +94,7 @@
 					
 			function init() {
 							
-				//loadJSON();		
+				loadJSON();		
 				matrix_rs.transpose();
 				loadJSON_rs();			
 				THREE_scene_init();		
@@ -187,19 +188,21 @@
 					var matrix = new THREE.Matrix4().multiplyMatrices(street_view_heading.matrix, street_view.matrix);	
 					panoSet[Object.keys(panoSet)[index]].matrix = matrix;
 					
-					geometry.applyMatrix(matrix);					
-					var pointcloud = new THREE.Points(geometry, point_cloud_material);
-					union_street_view.add(pointcloud);
-											
-					
-					panoSet[Object.keys(panoSet)[index]].buffer_geometry = geometry;					
-					
-										
-					// Sequence Download Pano
-					console.log(index, pathLen);
+					geometry.applyMatrix(matrix);	
 					if(index==0){						
 						mat_offs = matrix.clone();
 					}
+					//---- TEMP ----//
+					geometry.applyMatrix(new THREE.Matrix4().getInverse(mat_offs));	
+					geometry.applyMatrix(new THREE.Matrix4().makeRotationX( Math.PI/2 ));	
+					//---- TEMP ----//					
+					var pointcloud = new THREE.Points(geometry, point_cloud_material);
+					union_street_view.add(pointcloud);											
+					
+					panoSet[Object.keys(panoSet)[index]].buffer_geometry = geometry;
+					
+					console.log(index, pathLen);					
+					// Sequence Download Pano
 					if(index+1<pathLen){
 						index++;
 						auto_center_street(panoSet[Object.keys(panoSet)[index]].lat, panoSet[Object.keys(panoSet)[index]].lon, index);	
@@ -503,14 +506,15 @@
 				console.log(id_rs[0], points_rs[id_rs[0]]);
 				console.log(geometry.getAttribute('position').array[0], geometry.getAttribute('position').array[1], geometry.getAttribute('position').array[2]);
 				//geometry.applyMatrix(new THREE.Matrix4().getInverse(matrix_rs));
-				//geometry.applyMatrix(matrix_rs);
+				geometry.applyMatrix(matrix_rs);
 				//geometry.updateMatrix();
 				console.log( geometry.getAttribute('position').array[0], geometry.getAttribute('position').array[1], geometry.getAttribute('position').array[2]);
 				
 				geometry.computeBoundingBox();	
 				//var pointcloud = new THREE.Points(geometry, point_cloud_material);
 				pointcloud_rs = new THREE.Points(geometry, point_cloud_material);
-				union_street_view.add(pointcloud_rs);
+				pointcloud_rs_view.add(pointcloud_rs);
+				union_street_view.add(pointcloud_rs_view);
 			}			
 			function loadJSON_rs(callback) {   
 				var xmlhttp;
@@ -598,8 +602,9 @@
 						document.getElementById("depth_container").className = "hide";
 				});			
 				f_baisc.add(this, "trans", false).name("Axis trans").onChange(function (value) {
-					if (value){
+					if (value){						
 						union_street_view.applyMatrix(new THREE.Matrix4().getInverse(mat_offs));
+						union_street_view.applyMatrix(new THREE.Matrix4().makeRotationX( Math.PI/2 ));
 						if(guiView.ptX != ''){
 						console.log(guiView.ptX);
 							guiView.ptX = transXYZ.x;
@@ -608,12 +613,21 @@
 						}
 					}						
 					else{
+						union_street_view.applyMatrix(new THREE.Matrix4().makeRotationX( -Math.PI/2 ));
 						union_street_view.applyMatrix(mat_offs);
 						if(guiView.ptX != ''){
 							guiView.ptX = singleXYZ.x;
 							guiView.ptY = singleXYZ.y;
 							guiView.ptZ = singleXYZ.z;
 						}
+					}						
+				});	
+				f_baisc.add(this, "align", false).name("PCL align").onChange(function (value) {
+					if (value){
+						pointcloud_rs_view.applyMatrix(matrix_rs);
+					}						
+					else{
+						pointcloud_rs_view.applyMatrix(new THREE.Matrix4().getInverse(matrix_rs));
 					}						
 				});	
 				f_baisc.add(this, "color_2", false).name("Color trans").onChange(function (value) {
