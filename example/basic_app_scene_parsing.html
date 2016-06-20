@@ -72,7 +72,7 @@
 				//auto_center_street(pathPoint[pathPoint.length/2  ], pathPoint[pathPoint.length/2 +1 ]);
 				//console.log(pathPoint[10], pathPoint[11]);
 				auto_center_street(pathPoint[10], pathPoint[11], 0);
-			
+				console.log(pathPoint);
 				//----- EVENT LISTENER -----
 				window.addEventListener( 'resize', onWindowResize, false );
 				document.addEventListener('mousedown', on_document_mouse_down, false);
@@ -199,6 +199,7 @@
 					computeWorldAxis(panoSet[Object.keys(panoSet)[index]].lat, panoSet[Object.keys(panoSet)[index]].lon, wT);		
 					panoSet[Object.keys(panoSet)[index]].normal = wT.clone();
 					normal_offs = new THREE.Vector3(wT.x, wT.y, wT.z);	
+					console.log(panoSet[Object.keys(panoSet)[index]].lat, panoSet[Object.keys(panoSet)[index]].lon, wT);
 					//----- World objects Regeisterd in GLWorld -----		
 					street_view.rotation.y = -main_rotation * Math.PI / 180.0;	
 					registeredInGLWorld(wT, street_view_heading);
@@ -364,6 +365,7 @@
 					//World Axis to THREE.js Axis
 					var wT = new THREE.Vector3;
 					computeWorldAxis(panoSet[panoId].lat, panoSet[panoId].lon, wT);		
+					console.log(panoSet[panoId].lat, panoSet[panoId].lon, wT);
 					panoSet[panoId].normal = wT.clone();
 					//----- World objects Regeisterd in GLWorld -----		
 					street_view.rotation.y = -main_rotation * Math.PI / 180.0;	
@@ -523,7 +525,7 @@
 				stats.domElement.style.position = 'absolute';
 				stats.domElement.style.top = '0px';
 				stats.domElement.style.zIndex = 100;
-				container.appendChild( stats.domElement );			
+				//container.appendChild( stats.domElement );			
 				// point cloud material
 				point_cloud_material = new THREE.PointsMaterial({
 					size: point_size,

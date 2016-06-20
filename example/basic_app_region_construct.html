@@ -54,7 +54,7 @@
 			var earthR = 6371000, normal_offs, mat_offs;
 			//APP
 			var	panoSet = {}, panoIdarr = [], len=0;
-			var maxDepth = 30, maxLength = 30;
+			var maxDepth = 30, maxLength = 50;
 			
 			init();
 			animate();	
@@ -86,8 +86,10 @@
 				pano_loader.loadByLocation(new google.maps.LatLng(lat,lon));
 				pano_loader.onPanoramaLoad = function () {
 					panoIdarr.push(this.panoId);
-					var lat_real = this.data.Go[this.panoId].lat;
-					var lon_real = this.data.Go[this.panoId].lng;
+					console.log(this.data);
+					// Here is the PROBLEM!!
+					var lat_real = this.data.Jo[this.panoId].lat;
+					var lon_real = this.data.Jo[this.panoId].lng;
 					panoSet[this.panoId] = {lat:lat_real, lon:lon_real};						
 					// Get Panoramic
 					pano_container.appendChild(this.canvas);	
@@ -194,12 +196,12 @@
 					
 					geometry.applyMatrix(matrix);
 					var pointcloud = new THREE.Points(geometry, point_cloud_material);
-					union_street_view.add(pointcloud);
+					//union_street_view.add(pointcloud);
 					
 					panoSet[Object.keys(panoSet)[index]].buffer_geometry = geometry;	
 					
 					// Sequence Download Pano
-					panoIdarr.push('paxmh-ida4H3e2NeUIQ1tw');
+					//panoIdarr.push('paxmh-ida4H3e2NeUIQ1tw');
 					len = panoIdarr.length;
 					for(var i=0 ; i<len; i++){
 						auto_surround_street(panoIdarr[i], i);
@@ -218,8 +220,9 @@
 				//----- LOAD PANO (Find the nearest location)-----
 				pano_loader.loadById(panoId);
 				pano_loader.onPanoramaLoad = function () {
-					var lat_real = this.data.Go[panoId].lat;
-					var lon_real = this.data.Go[panoId].lng;
+					// Here is the PROBLEM!!
+					var lat_real = this.data.Jo[panoId].lat;
+					var lon_real = this.data.Jo[panoId].lng;
 					panoSet[panoId] = {lat:lat_real, lon:lon_real};	
 					// Get Panoramic
 					pano_container.appendChild(this.canvas);	
@@ -323,7 +326,7 @@
 					
 					geometry.applyMatrix(matrix);
 					var pointcloud = new THREE.Points(geometry, point_cloud_material);
-					union_street_view.add(pointcloud);
+					//union_street_view.add(pointcloud);
 					
 					panoSet[panoId].buffer_geometry = geometry;	
 					
