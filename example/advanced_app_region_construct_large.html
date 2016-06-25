@@ -61,13 +61,13 @@
 			var earthR = 6371000, normal_offs, mat_offs;
 			//APP
 			var	panoSet = {}, panoSet_metaOnly = {}, panoIdarr = [], len=0;
-			var maxDepth = 30, maxLength = 120;
+			var maxDepth = 30, maxLength = 12;
 			
 			init();
 			animate();	
 					
 			function init() {
-			
+				console.log('hi');
 				THREE_scene_init();		
 				DAT_view();
 				
@@ -95,8 +95,9 @@
 				pano_loader.onPanoramaLoad = function () {
 					panoIdarr.push(this.panoId);
 					// Here is the PROBLEM!!
-					var lat_real = this.data.Jo[this.panoId].lat;
-					var lon_real = this.data.Jo[this.panoId].lng;
+					console.log(this.data['$m'])
+					var lat_real = this.data['$m'][this.panoId].lat;
+					var lon_real = this.data['$m'][this.panoId].lng;
 					panoSet[this.panoId] = {lat:lat_real, lon:lon_real};						
 					// Get Panoramic
 					pano_container.appendChild(this.canvas);	
@@ -164,8 +165,8 @@
 				pano_loader.loadById(panoId);
 				pano_loader.onPanoramaLoad = function () {
 					// Here is the PROBLEM!!
-					var lat_real = this.data.Jo[panoId].lat;
-					var lon_real = this.data.Jo[panoId].lng;
+					var lat_real = this.data['$m'][panoId].lat;
+					var lon_real = this.data['$m'][panoId].lng;
 					panoSet[panoId] = {lat:lat_real, lon:lon_real};	
 					//panoSet_metaOnly[panoId] = {index: index, lat:lat_real, lon:lon_real};	
 					panoSet_metaOnly[index] = {panoId: panoId, lat:lat_real, lon:lon_real};	
@@ -190,7 +191,7 @@
 					panoSet[panoId].depthC = depth_container.children[index];
 					// Create Point Cloud
 					var geometry = new THREE.BufferGeometry();					
-					//createPointCloud(geometry, this.depthMap, img_canvas_context);
+					createPointCloud(geometry, this.depthMap, img_canvas_context);
 					//World Axis to THREE.js Axis
 					var wT = new THREE.Vector3;
 					computeWorldAxis(panoSet[panoId].lat, panoSet[panoId].lon, wT);		
@@ -206,7 +207,7 @@
 					
 					geometry.applyMatrix(matrix);
 					var pointcloud = new THREE.Points(geometry, point_cloud_material);
-					//union_street_view.add(pointcloud);
+					union_street_view.add(pointcloud);
 					
 					panoSet[panoId].buffer_geometry = geometry;	
 					

@@ -72,7 +72,7 @@
 			var single_line = new THREE.Object3D(), root_group_line = new THREE.Object3D();
 			var	panoSet = {};
 			//
-			var namelist;
+			var namelist, nameIndex = 8;
 			
 			init();
 			animate();	
@@ -175,7 +175,9 @@
 						console.log(XYZobj);	
 						f_confirm.add(guiView, "slPt", false).name("Select point");	
 						f_confirm.add(guiView, "slGroup", false).name("Select group");	
-						f_download.add(guiView, "dlPt").name("Download pt");	
+						f_download.add(guiView, "dlPt").name("Download pt");
+						console.log(nameIndex, namelist[nameIndex])
+						downloadPt();
 					}				
 				}	
 			}	
@@ -263,7 +265,7 @@
 				hiddenElement.href = 'data:' + XYZdata;				
 				hiddenElement.innerHTML = 'download JSON';
 				hiddenElement.target = '_blank';
-				hiddenElement.download = 'pano_result.json';
+				hiddenElement.download = namelist[nameIndex] + '_pano_result.json';
 				hiddenElement.click();
 				console.log('download');				
 			}
@@ -485,7 +487,8 @@
 					xmlhttp = new ActiveXObject("Microsoft.XMLHTTP");
 				}					
 				//var url = "json/info_3d_hog_00002_new.json";
-				var url = "json/dashcam/info_3d/"+ namelist[3] +"/info_3d.json";
+				var url = "json/dashcam/deep_match/"+ namelist[nameIndex] +"/info_3d.json";
+				console.log(nameIndex, namelist[nameIndex])
 				
 
 				xmlhttp.onreadystatechange = function() {
@@ -635,7 +638,7 @@
 				stats.domElement.style.position = 'absolute';
 				stats.domElement.style.top = '0px';
 				stats.domElement.style.zIndex = 100;
-				container.appendChild( stats.domElement );			
+				//container.appendChild( stats.domElement );			
 				// point cloud material
 				point_cloud_material = new THREE.PointsMaterial({
 					size: point_size,
@@ -651,7 +654,7 @@
 				// world (x-z plane)
 				var gridXZ = new THREE.GridHelper(1000, 50);
 				gridXZ.setColors( new THREE.Color(0xff0000), new THREE.Color(0xffffff) );
-				scene.add(gridXZ);				
+				//scene.add(gridXZ);				
 			}			
 			function onWindowResize() {
 				camera.aspect = window.innerWidth / window.innerHeight;

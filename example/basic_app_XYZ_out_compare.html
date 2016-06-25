@@ -73,7 +73,7 @@
 			var single_line = new THREE.Object3D(), root_group_line = new THREE.Object3D();
 			var	panoSet = {};
 			//COMPARE
-			var rs_index_set = ['000008', '000034', '000049', '000050', '000052', '000067', '000071', '000075', '000089', '000137'], rs_index = 9;		
+			var rs_index_set = ['000008', '000034', '000049', '000050', '000052', '000067', '000071', '000075', '000089', '000137'], rs_index = 2;		
 			var matrix_rs_set = [new THREE.Matrix4().set(
 			 0.1926119,    0.05387355,   0.0,           0.30060291,
 			 -0.05522555,   0.17638439,   0.0,          13.58407593,
@@ -142,7 +142,7 @@
 					
 			function init() {
 							
-				loadJSON();		
+				//loadJSON();		
 				matrix_rs.transpose();
 				loadJSON_rs();			
 				THREE_scene_init();		
@@ -256,7 +256,7 @@
 						auto_center_street(panoSet[Object.keys(panoSet)[index]].lat, panoSet[Object.keys(panoSet)[index]].lon, index);	
 					}
 					else{	
-						console.log(panoSet);					
+						//console.log(panoSet);					
 						$.each(actual_JSON, function(keyFrame, valFrame){	
 							$.each(valFrame, function(keyLocation, valLocation){
 								XYZobj[keyFrame][keyLocation] = [];
@@ -267,7 +267,7 @@
 								}				
 							});	
 						});													
-						console.log(XYZobj);	
+						//console.log(XYZobj);	
 						f_confirm.add(guiView, "slPt", false).name("Select point");	
 						f_confirm.add(guiView, "slGroup", false).name("Select group");	
 						f_download.add(guiView, "dlPt").name("Download pt");	
@@ -502,7 +502,7 @@
 					// code for IE6, IE5
 					xmlhttp = new ActiveXObject("Microsoft.XMLHTTP");
 				}	
-				var url = "json/dashcam/info_3d/"+ rs_index_set[rs_index] + "/info_3d.json";				
+				var url = "json/dashcam/deep_match/"+ rs_index_set[rs_index] + "/info_3d.json";				
 
 				xmlhttp.onreadystatechange = function() {
 					if (xmlhttp.readyState == 4 && xmlhttp.status == 200) {
@@ -516,7 +516,9 @@
 			}	
 
 			function parseJSON_rs(){	
-				var points_rs = actual_JSON_rs[0]['points'];
+				//var points_rs = actual_JSON_rs[0]['points'];
+				// new Version
+				var points_rs = actual_JSON_rs['points'];
 				var id_rs = [], xyz_rs = [];
 				
 				var geometry = new THREE.Geometry();
@@ -549,8 +551,8 @@
 				geometry.addAttribute('position', new THREE.BufferAttribute(positions, 3));
 				geometry.addAttribute('color', new THREE.BufferAttribute(color_rs, 3));
 				
-				console.log(id_rs[0], points_rs[id_rs[0]]);
-				console.log(geometry.getAttribute('position').array[0], geometry.getAttribute('position').array[1], geometry.getAttribute('position').array[2]);
+				//console.log(id_rs[0], points_rs[id_rs[0]]);
+				//console.log(geometry.getAttribute('position').array[0], geometry.getAttribute('position').array[1], geometry.getAttribute('position').array[2]);
 				//geometry.applyMatrix(new THREE.Matrix4().getInverse(matrix_rs));
 				geometry.applyMatrix(matrix_rs);
 				//geometry.updateMatrix();
@@ -571,8 +573,11 @@
 					// code for IE6, IE5
 					xmlhttp = new ActiveXObject("Microsoft.XMLHTTP");
 				}	
-				var url = "json/result/PointCloud/" + rs_index_set[rs_index] + ".json";
-
+				//var url = "json/result/PointCloud/" + rs_index_set[rs_index] + ".json";
+				// new Version
+				var url = "json/dashcam/deep_match/" + rs_index_set[rs_index] + "/pointCloud.json";
+				console.log(rs_index, rs_index_set[rs_index]);
+				
 				xmlhttp.onreadystatechange = function() {
 					if (xmlhttp.readyState == 4 && xmlhttp.status == 200) {
 						actual_JSON_rs = JSON.parse(xmlhttp.responseText);
@@ -736,7 +741,7 @@
 				// world (x-z plane)
 				var gridXZ = new THREE.GridHelper(1000, 50);
 				gridXZ.setColors( new THREE.Color(0xff0000), new THREE.Color(0xffffff) );
-				scene.add(gridXZ);		
+				//scene.add(gridXZ);		
 				
 				interActivesetting();			
 			}		
