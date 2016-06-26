@@ -26,6 +26,7 @@ THREE.EditorControls = function ( object, domElement ) {
 	var normalMatrix = new THREE.Matrix3();
 	var pointer = new THREE.Vector2();
 	var pointerOld = new THREE.Vector2();
+	var spherical = new THREE.Spherical();
 
 	// events
 
@@ -86,21 +87,14 @@ THREE.EditorControls = function ( object, domElement ) {
 
 		vector.copy( object.position ).sub( center );
 
-		var theta = Math.atan2( vector.x, vector.z );
-		var phi = Math.atan2( Math.sqrt( vector.x * vector.x + vector.z * vector.z ), vector.y );
+		spherical.setFromVector3( vector );
 
-		theta += delta.x;
-		phi += delta.y;
+		spherical.theta += delta.x;
+		spherical.phi += delta.y;
 
-		var EPS = 0.000001;
+		spherical.makeSafe();
 
-		phi = Math.max( EPS, Math.min( Math.PI - EPS, phi ) );
-
-		var radius = vector.length();
-
-		vector.x = radius * Math.sin( phi ) * Math.sin( theta );
-		vector.y = radius * Math.cos( phi );
-		vector.z = radius * Math.sin( phi ) * Math.cos( theta );
+		vector.setFromSpherical( spherical );
 
 		object.position.copy( center ).add( vector );
 
@@ -214,7 +208,7 @@ THREE.EditorControls = function ( object, domElement ) {
 		domElement.removeEventListener( 'contextmenu', contextmenu, false );
 		domElement.removeEventListener( 'mousedown', onMouseDown, false );
 		domElement.removeEventListener( 'mousewheel', onMouseWheel, false );
-		domElement.removeEventListener( 'DOMMouseScroll', onMouseWheel, false ); // firefox
+		domElement.removeEventListener( 'MozMousePixelScroll', onMouseWheel, false ); // firefox
 
 		domElement.removeEventListener( 'mousemove', onMouseMove, false );
 		domElement.removeEventListener( 'mouseup', onMouseUp, false );
@@ -229,7 +223,7 @@ THREE.EditorControls = function ( object, domElement ) {
 	domElement.addEventListener( 'contextmenu', contextmenu, false );
 	domElement.addEventListener( 'mousedown', onMouseDown, false );
 	domElement.addEventListener( 'mousewheel', onMouseWheel, false );
-	domElement.addEventListener( 'DOMMouseScroll', onMouseWheel, false ); // firefox
+	domElement.addEventListener( 'MozMousePixelScroll', onMouseWheel, false ); // firefox
 
 	// touch
 
@@ -272,7 +266,7 @@ THREE.EditorControls = function ( object, domElement ) {
 		event.preventDefault();
 		event.stopPropagation();
 
-		var getClosest = function( touch, touches ) {
+		function getClosest( touch, touches ) {
 
 			var closest = touches[ 0 ];
 
@@ -284,7 +278,7 @@ THREE.EditorControls = function ( object, domElement ) {
 
 			return closest;
 
-		};
+		}
 
 		switch ( event.touches.length ) {
 

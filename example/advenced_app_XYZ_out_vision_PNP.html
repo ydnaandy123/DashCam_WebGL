@@ -18,6 +18,7 @@
 		<script src="../libs/mrdoob-three.js-5c6ec4a/examples/js/Detector.js"></script>
 		<script src="../libs/mrdoob-three.js-5c6ec4a/examples/js/libs/stats.min.js"></script>
 		
+		
 		<script type="text/javascript" src="https://maps.googleapis.com/maps/api/js?v=3.exp&sensor=false"></script>
 		
 		<script type="text/javascript" src="../libs/dat.gui.min.js"></script>		
@@ -30,7 +31,31 @@
 		<script src="js/GSVPanoDepth_my.js" type="text/javascript"></script>	
 		
 		<script>				
-			
+			THREE.ConeBufferGeometry = function (
+	radius, height,
+	radialSegments, heightSegments,
+	openEnded, thetaStart, thetaLength ) {
+
+	THREE.CylinderBufferGeometry.call( this,
+		0, radius, height,
+		radialSegments, heightSegments,
+		openEnded, thetaStart, thetaLength );
+
+	this.type = 'ConeBufferGeometry';
+
+	this.parameters = {
+		radius: radius,
+		height: height,
+		radialSegments: radialSegments,
+		heightSegments: heightSegments,
+		thetaStart: thetaStart,
+		thetaLength: thetaLength
+	};
+
+};
+
+THREE.ConeBufferGeometry.prototype = Object.create( THREE.BufferGeometry.prototype );
+THREE.ConeBufferGeometry.prototype.constructor = THREE.ConeBufferGeometry;
 			if ( ! Detector.webgl ) Detector.addGetWebGLMessage();
 			//THREE.js
 			var camera, controls, scene, renderer, raycaster, stats;
@@ -72,7 +97,7 @@
 			var single_line = new THREE.Object3D(), root_group_line = new THREE.Object3D();
 			var	panoSet = {};
 			//
-			var namelist, nameIndex = 8;
+			var namelist, nameIndex = 75;
 			
 			init();
 			animate();	
@@ -140,8 +165,8 @@
 					geometry.applyMatrix(matrix);	
 					if(index==0){						
 						mat_offs = matrix.clone();
+						parse_trajectory();
 					}
-					parse_trajectory();
 					//---- TEMP ----//
 					geometry.applyMatrix(new THREE.Matrix4().getInverse(mat_offs));	
 					geometry.applyMatrix(new THREE.Matrix4().makeRotationX( Math.PI/2 ));	
@@ -182,7 +207,7 @@
 				}	
 			}	
 			function drawPNPcamera(wT, clr){
-				var geometry = new THREE.SphereGeometry( 1.5, 10, 10 );
+				var geometry = new THREE.SphereGeometry( 1, 10, 10 );
 				var material = new THREE.MeshBasicMaterial( {color: clr} );
 					var sphere = new THREE.Mesh( geometry, material );
 					sphere.position.x = wT.x;
@@ -192,7 +217,9 @@
 					
 					sphere.applyMatrix(new THREE.Matrix4().getInverse(mat_offs));	
 					sphere.applyMatrix(new THREE.Matrix4().makeRotationX( Math.PI/2 ));
-					union_street_view.add( sphere );	
+					sphere.updateMatrix();
+					
+					return sphere;	
 			}
 			function XYZback2LatLon(vec){
 				lng = Math.atan(vec.x / vec.z) / Math.PI * 180;
@@ -531,15 +558,42 @@
 					$.each(valFrame, function(keyLocation, valLocation){
 						var wT = new THREE.Vector3();
 						var loc = keyLocation.split(",")	
-						computeWorldAxis(loc[0], loc[1], wT);
-						drawPNPcamera(wT.sub(normal_offs), 0xffff00)
+						computeWorldAxis(loc[0], loc[1], wT);						
+						var sphere = drawPNPcamera(wT.sub(normal_offs), 0xffff00)						
+						union_street_view.add( sphere );
+						
+						var ori = new THREE.Vector3( sphere.position.x, sphere.position.y, sphere.position.z );
 						
 						var wT_offs = new THREE.Vector3(valLocation[0][0], valLocation[1][0], valLocation[2][0]);
 						//trajectory_set.push(wT_offs);	
-						drawPNPcamera(wT.add(wT_offs), 0x0000ff);
+						//drawPNPcamera(wT.add(wT_offs), 0x0000ff);
+						var geometry = new THREE.ConeBufferGeometry( 1.5,2,5 );
+						var material = new THREE.MeshBasicMaterial( {color: 0x0000ff} );
+						var cone = new THREE.Mesh( geometry, material );
+						cone.position.x = wT_offs.x;
+						cone.position.y = wT_offs.y;
+						cone.position.z = wT_offs.z;
+						cone.updateMatrix();
+						cone.lookAt(ori)
+						cone.rotateOnAxis(new THREE.Vector3(1,0,0), Math.PI/2);
+						
+						union_street_view.add( cone );	
+
+						var material = new THREE.LineBasicMaterial({
+							color: 0x00ff00
+						});
+
+						var geometry = new THREE.Geometry();
+						geometry.vertices.push(
+							new THREE.Vector3( wT_offs.x, wT_offs.y, wT_offs.z ),
+							ori
+						);
+
+						var line = new THREE.Line( geometry, material );
+						scene.add( line );						
 					});	
 				});	
-				console.log(trajectory_set)
+				console.log(trajectory_set, 'hi')
 			}
 			function load_trajectory(callback) {   
 				var xmlhttp;
@@ -713,9 +767,9 @@
 				union_street_view.add(single_line);
 				union_street_view.add(root_group_line);
 				// world (x-z plane)
-				var gridXZ = new THREE.GridHelper(1000, 50);
-				gridXZ.setColors( new THREE.Color(0xff0000), new THREE.Color(0xffffff) );
-				scene.add(gridXZ);				
+				//var gridXZ = new THREE.GridHelper(1000, 50,new THREE.Color(0xff0000), new THREE.Color(0xffffff));
+				//gridXZ.setColors( new THREE.Color(0xff0000), new THREE.Color(0xffffff) );
+				//scene.add(gridXZ);				
 			}			
 			function onWindowResize() {
 				camera.aspect = window.innerWidth / window.innerHeight;

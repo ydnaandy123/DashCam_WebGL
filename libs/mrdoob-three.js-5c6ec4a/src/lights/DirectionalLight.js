@@ -5,7 +5,7 @@
 
 THREE.DirectionalLight = function ( color, intensity ) {
 
-	THREE.Light.call( this, color );
+	THREE.Light.call( this, color, intensity );
 
 	this.type = 'DirectionalLight';
 
@@ -14,74 +14,24 @@ THREE.DirectionalLight = function ( color, intensity ) {
 
 	this.target = new THREE.Object3D();
 
-	this.intensity = ( intensity !== undefined ) ? intensity : 1;
-
-	this.castShadow = false;
-	this.onlyShadow = false;
-
-	this.shadowCameraNear = 50;
-	this.shadowCameraFar = 5000;
-
-	this.shadowCameraLeft = - 500;
-	this.shadowCameraRight = 500;
-	this.shadowCameraTop = 500;
-	this.shadowCameraBottom = - 500;
-
-	this.shadowCameraVisible = false;
-
-	this.shadowBias = 0;
-	this.shadowDarkness = 0.5;
-
-	this.shadowMapWidth = 512;
-	this.shadowMapHeight = 512;
-
-	this.shadowMap = null;
-	this.shadowMapSize = null;
-	this.shadowCamera = null;
-	this.shadowMatrix = null;
+	this.shadow = new THREE.DirectionalLightShadow();
 
 };
 
-THREE.DirectionalLight.prototype = Object.create( THREE.Light.prototype );
-THREE.DirectionalLight.prototype.constructor = THREE.DirectionalLight;
+THREE.DirectionalLight.prototype = Object.assign( Object.create( THREE.Light.prototype ), {
 
-THREE.DirectionalLight.prototype.copy = function ( source ) {
+	constructor: THREE.DirectionalLight,
 
-	THREE.Light.prototype.copy.call( this, source );
+	copy: function ( source ) {
 
-	this.intensity = source.intensity;
-	this.target = source.target.clone();
+		THREE.Light.prototype.copy.call( this, source );
 
-	this.castShadow = source.castShadow;
-	this.onlyShadow = source.onlyShadow;
+		this.target = source.target.clone();
 
-	this.shadowCameraNear = source.shadowCameraNear;
-	this.shadowCameraFar = source.shadowCameraFar;
+		this.shadow = source.shadow.clone();
 
-	this.shadowCameraLeft = source.shadowCameraLeft;
-	this.shadowCameraRight = source.shadowCameraRight;
-	this.shadowCameraTop = source.shadowCameraTop;
-	this.shadowCameraBottom = source.shadowCameraBottom;
+		return this;
 
-	this.shadowCameraVisible = source.shadowCameraVisible;
+	}
 
-	this.shadowBias = source.shadowBias;
-	this.shadowDarkness = source.shadowDarkness;
-
-	this.shadowMapWidth = source.shadowMapWidth;
-	this.shadowMapHeight = source.shadowMapHeight;
-
-	return this;
-
-};
-
-THREE.DirectionalLight.prototype.toJSON = function ( meta ) {
-
-	var data = THREE.Object3D.prototype.toJSON.call( this, meta );
-
-	data.object.color = this.color.getHex();
-	data.object.intensity = this.intensity;
-
-	return data;
-
-};
+} );

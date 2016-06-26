@@ -15,7 +15,7 @@ var APP = {
 
 		var events = {};
 
-		this.dom = undefined;
+		this.dom = document.createElement( 'div' );
 
 		this.width = 500;
 		this.height = 500;
@@ -27,7 +27,15 @@ var APP = {
 			renderer = new THREE.WebGLRenderer( { antialias: true } );
 			renderer.setClearColor( 0x000000 );
 			renderer.setPixelRatio( window.devicePixelRatio );
-			this.dom = renderer.domElement;
+
+			if ( json.project.shadows ) {
+
+				renderer.shadowMap.enabled = true;
+				// renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+
+			}
+
+			this.dom.appendChild( renderer.domElement );
 
 			this.setScene( loader.parse( json.scene ) );
 			this.setCamera( loader.parse( json.camera ) );
@@ -47,18 +55,28 @@ var APP = {
 				update: []
 			};
 
-			var scriptWrapParams = 'player,renderer,scene';
+			var scriptWrapParams = 'player,renderer,scene,camera';
 			var scriptWrapResultObj = {};
+
 			for ( var eventKey in events ) {
+
 				scriptWrapParams += ',' + eventKey;
 				scriptWrapResultObj[ eventKey ] = eventKey;
+
 			}
-			var scriptWrapResult =
-					JSON.stringify( scriptWrapResultObj ).replace( /\"/g, '' );
+
+			var scriptWrapResult = JSON.stringify( scriptWrapResultObj ).replace( /\"/g, '' );
 
 			for ( var uuid in json.scripts ) {
 
 				var object = scene.getObjectByProperty( 'uuid', uuid, true );
+
+				if ( object === undefined ) {
+
+					console.warn( 'APP.Player: Script without object.', uuid );
+					continue;
+
+				}
 
 				var scripts = json.scripts[ uuid ];
 
@@ -66,8 +84,7 @@ var APP = {
 
 					var script = scripts[ i ];
 
-					var functions = ( new Function( scriptWrapParams,
-							script.source + '\nreturn ' + scriptWrapResult+ ';' ).bind( object ) )( this, renderer, scene );
+					var functions = ( new Function( scriptWrapParams, script.source + '\nreturn ' + scriptWrapResult + ';' ).bind( object ) )( this, renderer, scene, camera );
 
 					for ( var name in functions ) {
 
@@ -75,7 +92,7 @@ var APP = {
 
 						if ( events[ name ] === undefined ) {
 
-							console.warn( 'APP.Player: event type not supported (', name, ')' );
+							console.warn( 'APP.Player: Event type not supported (', name, ')' );
 							continue;
 
 						}
@@ -98,7 +115,6 @@ var APP = {
 			camera.aspect = this.width / this.height;
 			camera.updateProjectionMatrix();
 
-
 			if ( vr === true ) {
 
 				if ( camera.parent === null ) {
@@ -117,21 +133,17 @@ var APP = {
 				controls = new THREE.VRControls( camera );
 				effect = new THREE.VREffect( renderer );
 
-				document.addEventListener( 'keyup', function ( event ) {
+				if ( WEBVR.isAvailable() === true ) {
 
-					switch ( event.keyCode ) {
-						case 90:
-							controls.zeroSensor();
-							break;
-					}
+					this.dom.appendChild( WEBVR.getButton( effect ) );
 
-				} );
+				}
 
-				this.dom.addEventListener( 'dblclick', function () {
+				if ( WEBVR.isLatestAvailable() === false ) {
 
-					effect.setFullScreen( true );
+					this.dom.appendChild( WEBVR.getMessage() );
 
-				} );
+				}
 
 			}
 
@@ -141,7 +153,7 @@ var APP = {
 
 			scene = value;
 
-		},
+		};
 
 		this.setSize = function ( width, height ) {
 
@@ -157,31 +169,31 @@ var APP = {
 
 		};
 
-		var dispatch = function ( array, event ) {
+		function dispatch( array, event ) {
 
 			for ( var i = 0, l = array.length; i < l; i ++ ) {
 
-				try {
-
-					array[ i ]( event );
-
-				} catch (e) {
-
-					console.error( ( e.message || e ), ( e.stack || "" ) );
-
-				}
+				array[ i ]( event );
 
 			}
 
-		};
+		}
 
 		var prevTime, request;
 
-		var animate = function ( time ) {
+		function animate( time ) {
 
 			request = requestAnimationFrame( animate );
 
-			dispatch( events.update, { time: time, delta: time - prevTime } );
+			try {
+
+				dispatch( events.update, { time: time, delta: time - prevTime } );
+
+			} catch ( e ) {
+
+				console.error( ( e.message || e ), ( e.stack || "" ) );
+
+			}
 
 			if ( vr === true ) {
 
@@ -196,7 +208,7 @@ var APP = {
 
 			prevTime = time;
 
-		};
+		}
 
 		this.play = function () {
 
@@ -212,7 +224,8 @@ var APP = {
 			dispatch( events.start, arguments );
 
 			request = requestAnimationFrame( animate );
-			prevTime = ( window.performance || Date ).now();
+			prevTime = performance.now();
+
 		};
 
 		this.stop = function () {
@@ -229,57 +242,70 @@ var APP = {
 			dispatch( events.stop, arguments );
 
 			cancelAnimationFrame( request );
+
+		};
+
+		this.dispose = function () {
+
+			while ( this.dom.children.length ) {
+
+				this.dom.removeChild( this.dom.firstChild );
+
+			}
+
+			renderer.dispose();
+
 		};
 
 		//
 
-		var onDocumentKeyDown = function ( event ) {
+		function onDocumentKeyDown( event ) {
 
 			dispatch( events.keydown, event );
 
-		};
+		}
 
-		var onDocumentKeyUp = function ( event ) {
+		function onDocumentKeyUp( event ) {
 
 			dispatch( events.keyup, event );
 
-		};
+		}
 
-		var onDocumentMouseDown = function ( event ) {
+		function onDocumentMouseDown( event ) {
 
 			dispatch( events.mousedown, event );
 
-		};
+		}
 
-		var onDocumentMouseUp = function ( event ) {
+		function onDocumentMouseUp( event ) {
 
 			dispatch( events.mouseup, event );
 
-		};
+		}
 
-		var onDocumentMouseMove = function ( event ) {
+		function onDocumentMouseMove( event ) {
 
 			dispatch( events.mousemove, event );
 
-		};
+		}
 
-		var onDocumentTouchStart = function ( event ) {
+		function onDocumentTouchStart( event ) {
 
 			dispatch( events.touchstart, event );
 
-		};
+		}
 
-		var onDocumentTouchEnd = function ( event ) {
+		function onDocumentTouchEnd( event ) {
 
 			dispatch( events.touchend, event );
 
-		};
+		}
 
-		var onDocumentTouchMove = function ( event ) {
+		function onDocumentTouchMove( event ) {
 
 			dispatch( events.touchmove, event );
 
-		};
+		}
 
 	}
 

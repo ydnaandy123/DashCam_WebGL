@@ -51,7 +51,6 @@ NUMERIC = {
     'LinearMipMapNearestFilter': 1007,
     'LinearMipMapLinearFilter': 1008
 }
-
 JSON = 'json'
 EXTENSION = '.%s' % JSON
 INDENT = 'indent'
@@ -79,7 +78,11 @@ MAPS = 'maps'
 FRAME_STEP = 'frameStep'
 FRAME_INDEX_AS_TIME = 'frameIndexAsTime'
 ANIMATION = 'animations'
+CLIPS="clips"
+KEYFRAMES = 'tracks'
 MORPH_TARGETS = 'morphTargets'
+MORPH_TARGETS_ANIM = 'morphTargetsAnimation'
+BLEND_SHAPES = 'blendShapes'
 POSE = 'pose'
 REST = 'rest'
 SKIN_INDICES = 'skinIndices'
@@ -90,11 +93,13 @@ LIGHTS = 'lights'
 HIERARCHY = 'hierarchy'
 FACE_MATERIALS = 'faceMaterials'
 SKINNING = 'skinning'
-COPY_TEXTURES = 'copyTextures'
+EXPORT_TEXTURES = 'exportTextures'
+EMBED_TEXTURES = 'embedTextures'
 TEXTURE_FOLDER = 'textureFolder'
 ENABLE_PRECISION = 'enablePrecision'
 PRECISION = 'precision'
 DEFAULT_PRECISION = 6
+CUSTOM_PROPERTIES = 'customProperties'
 EMBED_GEOMETRY = 'embedGeometry'
 EMBED_ANIMATION = 'embedAnimation'
 OFF = 'off'
@@ -110,6 +115,7 @@ ERROR = 'error'
 WARNING = 'warning'
 INFO = 'info'
 DEBUG = 'debug'
+DISABLED = 'disabled'
 
 NONE = 'None'
 MSGPACK = 'msgpack'
@@ -141,17 +147,21 @@ EXPORT_OPTIONS = {
     COMPRESSION: None,
     MAPS: False,
     ANIMATION: OFF,
+    KEYFRAMES: False,
     BONES: False,
     SKINNING: False,
     MORPH_TARGETS: False,
+    BLEND_SHAPES: False,
     CAMERAS: False,
     LIGHTS: False,
     HIERARCHY: False,
-    COPY_TEXTURES: True,
+    EXPORT_TEXTURES: True,
+    EMBED_TEXTURES: False,
     TEXTURE_FOLDER: '',
     LOGGING: DEBUG,
     ENABLE_PRECISION: True,
     PRECISION: DEFAULT_PRECISION,
+    CUSTOM_PROPERTIES: False,
     EMBED_GEOMETRY: True,
     EMBED_ANIMATION: True,
     GEOMETRY_TYPE: GEOMETRY,
@@ -160,7 +170,7 @@ EXPORT_OPTIONS = {
 }
 
 
-FORMAT_VERSION = 4.3
+FORMAT_VERSION = 4.4
 VERSION = 'version'
 THREE = 'io_three'
 GENERATOR = 'generator'
@@ -214,10 +224,13 @@ ROTATION = 'rotation'
 SCALE = 'scale'
 
 UV = 'uv'
+UV2 = 'uv2'
 ATTRIBUTES = 'attributes'
 NORMAL = 'normal'
 ITEM_SIZE = 'itemSize'
 ARRAY = 'array'
+
+FLOAT_32 = 'Float32Array'
 
 VISIBLE = 'visible'
 CAST_SHADOW = 'castShadow'
@@ -264,7 +277,6 @@ SCL = 'scl'
 TIME = 'time'
 KEYS = 'keys'
 
-AMBIENT = 'ambient'
 COLOR = 'color'
 EMISSIVE = 'emissive'
 SPECULAR = 'specular'
@@ -331,6 +343,7 @@ INTENSITY = 'intensity'
 DISTANCE = 'distance'
 ASPECT = 'aspect'
 ANGLE = 'angle'
+DECAY = 'decayExponent'
 
 FOV = 'fov'
 ASPECT = 'aspect'
@@ -344,7 +357,6 @@ BOTTOM = 'bottom'
 
 SHADING = 'shading'
 COLOR_DIFFUSE = 'colorDiffuse'
-COLOR_AMBIENT = 'colorAmbient'
 COLOR_EMISSIVE = 'colorEmissive'
 COLOR_SPECULAR = 'colorSpecular'
 DBG_NAME = 'DbgName'

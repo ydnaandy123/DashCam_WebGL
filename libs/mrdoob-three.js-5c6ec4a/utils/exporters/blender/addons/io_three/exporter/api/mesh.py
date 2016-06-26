@@ -68,7 +68,6 @@ def skeletal_animation(mesh, options):
 
     return animations
 
-
 @_mesh
 def bones(mesh, options):
     """
@@ -125,7 +124,7 @@ def buffer_normal(mesh):
 
         for vertex_index in face.vertices:
             normal = mesh.vertices[vertex_index].normal
-            vector = (normal.x, normal.y, normal.z)
+            vector = (normal.x, normal.y, normal.z) if face.use_smooth else (face.normal.x, face.normal.y, face.normal.z)
             normals_.extend(vector)
 
     return normals_
@@ -156,22 +155,19 @@ def buffer_position(mesh):
 
 
 @_mesh
-def buffer_uv(mesh):
+def buffer_uv(mesh, layer=0):
     """
 
     :param mesh:
+    :param layer: (Default value = 0)
     :rtype: []
 
     """
     uvs_ = []
-    if len(mesh.uv_layers) is 0:
+    if len(mesh.uv_layers) <= layer:
         return uvs_
-    elif len(mesh.uv_layers) > 1:
-        # if memory serves me correctly buffer geometry
-        # only uses one UV layer
-        logger.warning("%s has more than 1 UV layer", mesh.name)
 
-    for uv_data in mesh.uv_layers[0].data:
+    for uv_data in mesh.uv_layers[layer].data:
         uv_tuple = (uv_data.uv[0], uv_data.uv[1])
         uvs_.extend(uv_tuple)
 
@@ -312,6 +308,7 @@ def faces(mesh, options, material_list=None):
     if vertex_normals:
         logger.debug("Indexing normals")
         for index, normal in enumerate(vertex_normals):
+            normal = (normal[0], normal[2], -normal[1])
             normal_indices[str(normal)] = index
 
     logger.info("Parsing %d faces", len(mesh.tessfaces))
@@ -343,9 +340,9 @@ def faces(mesh, options, material_list=None):
                     face_data.append(mat_index)
                     break
             else:
-                error = ("Could not map the material index "
+                logger.warning("Could not map the material index "
                          "for face %d" % face.index)
-                raise exceptions.MaterialError(error)
+                face_data.append(0)  # default to index zero if there's a bad material
 
         if uv_indices:
             for index, uv_layer in enumerate(uv_indices):
@@ -360,7 +357,7 @@ def faces(mesh, options, material_list=None):
         if vertex_normals:
             for vertex in face.vertices:
                 normal = mesh.vertices[vertex].normal
-                normal = (normal.x, normal.y, normal.z)
+                normal = (normal.x, normal.z, -normal.y) if face.use_smooth else (face.normal.x, face.normal.z, -face.normal.y)
                 face_data.append(normal_indices[str(normal)])
                 mask[constants.NORMALS] = True
 
@@ -431,6 +428,74 @@ def morph_targets(mesh, options):
 
     return manifest
 
+@_mesh
+def blend_shapes(mesh, options):
+    """
+
+    :param mesh:
+    :param options:
+
+    """
+    logger.debug("mesh.blend_shapes(%s, %s)", mesh, options)
+    manifest = []
+    if mesh.shape_keys:
+        logger.info("mesh.blend_shapes -- there's shape keys")
+        key_blocks = mesh.shape_keys.key_blocks
+        for key in key_blocks.keys()[1:]:     # skip "Basis"
+            logger.info("mesh.blend_shapes -- key %s", key)
+            morph = []
+            for d in key_blocks[key].data:
+                co = d.co
+                morph.extend([co.x, co.y, co.z])
+            manifest.append({
+                constants.NAME: key,
+                constants.VERTICES: morph
+            })
+    else:
+        logger.debug("No valid blend_shapes detected")
+    return manifest
+
+@_mesh
+def animated_blend_shapes(mesh, name, options):
+    """
+
+    :param mesh:
+    :param options:
+
+    """
+
+    # let filter the name to only keep the node's name
+    # the two cases are '%sGeometry' and '%sGeometry.%d', and we want %s
+    name = re.search("^(.*)Geometry(\..*)?$", name).group(1)
+
+    logger.debug("mesh.animated_blend_shapes(%s, %s)", mesh, options)
+    tracks = []
+    shp = mesh.shape_keys
+    animCurves = shp.animation_data
+    if animCurves:
+        animCurves = animCurves.action.fcurves
+
+    for key in shp.key_blocks.keys()[1:]:    # skip "Basis"
+        key_name = name+".morphTargetInfluences["+key+"]"
+        found_animation = False
+        data_path = 'key_blocks["'+key+'"].value'
+        values = []
+        if animCurves:
+            for fcurve in animCurves:
+                if fcurve.data_path == data_path:
+                    for xx in fcurve.keyframe_points:
+                        values.append({ "time": xx.co.x, "value": xx.co.y })
+                    found_animation = True
+                    break # no need to continue
+
+        if found_animation:
+            tracks.append({
+                constants.NAME: key_name,
+                constants.TYPE: "number",
+                constants.KEYS: values
+            });
+
+    return tracks
 
 @_mesh
 def materials(mesh, options):
@@ -441,6 +506,10 @@ def materials(mesh, options):
 
     """
     logger.debug("mesh.materials(%s, %s)", mesh, options)
+
+    # sanity check
+    if not mesh.materials:
+        return []
 
     indices = []
     for face in mesh.tessfaces:
@@ -458,6 +527,9 @@ def materials(mesh, options):
     logger.info("Vertex colours set to %s", use_colors)
 
     for mat, index in material_sets:
+        if mat == None:     # undefined material for a specific index is skipped
+            continue
+
         try:
             dbg_color = constants.DBG_COLORS[index]
         except IndexError:
@@ -465,7 +537,6 @@ def materials(mesh, options):
 
         logger.info("Compiling attributes for %s", mat.name)
         attributes = {
-            constants.COLOR_AMBIENT: material.ambient_color(mat),
             constants.COLOR_EMISSIVE: material.emissive_color(mat),
             constants.SHADING: material.shading(mat),
             constants.OPACITY: material.opacity(mat),
@@ -545,35 +616,38 @@ def normals(mesh):
     normal_vectors = []
 
     for vector in _normals(mesh):
+        vector = (vector[0], vector[2], -vector[1])
         normal_vectors.extend(vector)
 
     return normal_vectors
 
 
 @_mesh
-def skin_weights(mesh, bone_map, influences):
+def skin_weights(mesh, bone_map, influences, anim_type):
     """
 
     :param mesh:
     :param bone_map:
     :param influences:
+    :param anim_type
 
     """
     logger.debug("mesh.skin_weights(%s)", mesh)
-    return _skinning_data(mesh, bone_map, influences, 1)
+    return _skinning_data(mesh, bone_map, influences, anim_type, 1)
 
 
 @_mesh
-def skin_indices(mesh, bone_map, influences):
+def skin_indices(mesh, bone_map, influences, anim_type):
     """
 
     :param mesh:
     :param bone_map:
     :param influences:
+    :param anim_type
 
     """
     logger.debug("mesh.skin_indices(%s)", mesh)
-    return _skinning_data(mesh, bone_map, influences, 0)
+    return _skinning_data(mesh, bone_map, influences, anim_type,  0)
 
 
 @_mesh
@@ -833,7 +907,7 @@ def _normals(mesh):
 
         for vertex_index in face.vertices:
             normal = mesh.vertices[vertex_index].normal
-            vector = (normal.x, normal.y, normal.z)
+            vector = (normal.x, normal.y, normal.z) if face.use_smooth else (face.normal.x, face.normal.y, face.normal.z)
 
             str_vec = str(vector)
             try:
@@ -889,19 +963,27 @@ def _armature(mesh):
     return armature
 
 
-def _skinning_data(mesh, bone_map, influences, array_index):
+def _skinning_data(mesh, bone_map, influences, anim_type, array_index):
     """
 
     :param mesh:
     :param bone_map:
     :param influences:
     :param array_index:
+    :param anim_type
 
     """
     armature = _armature(mesh)
     manifest = []
     if not armature:
         return manifest
+
+    # armature bones here based on type
+    if anim_type == constants.OFF or anim_type == constants.REST:
+        armature_bones = armature.data.bones
+    else:
+        # POSE mode
+        armature_bones = armature.pose.bones
 
     obj = object_.objects_using_mesh(mesh)[0]
     logger.debug("Skinned object found %s", obj.name)
@@ -918,7 +1000,7 @@ def _skinning_data(mesh, bone_map, influences, array_index):
                 manifest.append(0)
                 continue
             name = obj.vertex_groups[bone_array[index][0]].name
-            for bone_index, bone in enumerate(armature.pose.bones):
+            for bone_index, bone in enumerate(armature_bones):
                 if bone.name != name:
                     continue
                 if array_index is 0:

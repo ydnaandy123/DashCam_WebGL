@@ -25,17 +25,17 @@ THREE.Object3D = function () {
 	var quaternion = new THREE.Quaternion();
 	var scale = new THREE.Vector3( 1, 1, 1 );
 
-	var onRotationChange = function () {
+	function onRotationChange() {
 
 		quaternion.setFromEuler( rotation, false );
 
-	};
+	}
 
-	var onQuaternionChange = function () {
+	function onQuaternionChange() {
 
 		rotation.setFromQuaternion( quaternion, undefined, false );
 
-	};
+	}
 
 	rotation.onChange( onRotationChange );
 	quaternion.onChange( onQuaternionChange );
@@ -65,14 +65,13 @@ THREE.Object3D = function () {
 		}
 	} );
 
-	this.rotationAutoUpdate = true;
-
 	this.matrix = new THREE.Matrix4();
 	this.matrixWorld = new THREE.Matrix4();
 
 	this.matrixAutoUpdate = THREE.Object3D.DefaultMatrixAutoUpdate;
 	this.matrixWorldNeedsUpdate = false;
 
+	this.layers = new THREE.Layers();
 	this.visible = true;
 
 	this.castShadow = false;
@@ -88,43 +87,7 @@ THREE.Object3D = function () {
 THREE.Object3D.DefaultUp = new THREE.Vector3( 0, 1, 0 );
 THREE.Object3D.DefaultMatrixAutoUpdate = true;
 
-THREE.Object3D.prototype = {
-
-	constructor: THREE.Object3D,
-
-	get eulerOrder () {
-
-		console.warn( 'THREE.Object3D: .eulerOrder has been moved to .rotation.order.' );
-
-		return this.rotation.order;
-
-	},
-
-	set eulerOrder ( value ) {
-
-		console.warn( 'THREE.Object3D: .eulerOrder has been moved to .rotation.order.' );
-
-		this.rotation.order = value;
-
-	},
-
-	get useQuaternion () {
-
-		console.warn( 'THREE.Object3D: .useQuaternion has been removed. The library now uses quaternions by default.' );
-
-	},
-
-	set useQuaternion ( value ) {
-
-		console.warn( 'THREE.Object3D: .useQuaternion has been removed. The library now uses quaternions by default.' );
-
-	},
-
-	set renderDepth ( value ) {
-
-		console.warn( 'THREE.Object3D: .renderDepth has been removed. Use .renderOrder, instead.' );
-
-	},
+Object.assign( THREE.Object3D.prototype, THREE.EventDispatcher.prototype, {
 
 	applyMatrix: function ( matrix ) {
 
@@ -171,7 +134,7 @@ THREE.Object3D.prototype = {
 
 		var q1 = new THREE.Quaternion();
 
-		return function ( axis, angle ) {
+		return function rotateOnAxis( axis, angle ) {
 
 			q1.setFromAxisAngle( axis, angle );
 
@@ -187,7 +150,7 @@ THREE.Object3D.prototype = {
 
 		var v1 = new THREE.Vector3( 1, 0, 0 );
 
-		return function ( angle ) {
+		return function rotateX( angle ) {
 
 			return this.rotateOnAxis( v1, angle );
 
@@ -199,7 +162,7 @@ THREE.Object3D.prototype = {
 
 		var v1 = new THREE.Vector3( 0, 1, 0 );
 
-		return function ( angle ) {
+		return function rotateY( angle ) {
 
 			return this.rotateOnAxis( v1, angle );
 
@@ -211,7 +174,7 @@ THREE.Object3D.prototype = {
 
 		var v1 = new THREE.Vector3( 0, 0, 1 );
 
-		return function ( angle ) {
+		return function rotateZ( angle ) {
 
 			return this.rotateOnAxis( v1, angle );
 
@@ -226,7 +189,7 @@ THREE.Object3D.prototype = {
 
 		var v1 = new THREE.Vector3();
 
-		return function ( axis, distance ) {
+		return function translateOnAxis( axis, distance ) {
 
 			v1.copy( axis ).applyQuaternion( this.quaternion );
 
@@ -238,18 +201,11 @@ THREE.Object3D.prototype = {
 
 	}(),
 
-	translate: function ( distance, axis ) {
-
-		console.warn( 'THREE.Object3D: .translate() has been removed. Use .translateOnAxis( axis, distance ) instead.' );
-		return this.translateOnAxis( axis, distance );
-
-	},
-
 	translateX: function () {
 
 		var v1 = new THREE.Vector3( 1, 0, 0 );
 
-		return function ( distance ) {
+		return function translateX( distance ) {
 
 			return this.translateOnAxis( v1, distance );
 
@@ -261,7 +217,7 @@ THREE.Object3D.prototype = {
 
 		var v1 = new THREE.Vector3( 0, 1, 0 );
 
-		return function ( distance ) {
+		return function translateY( distance ) {
 
 			return this.translateOnAxis( v1, distance );
 
@@ -273,7 +229,7 @@ THREE.Object3D.prototype = {
 
 		var v1 = new THREE.Vector3( 0, 0, 1 );
 
-		return function ( distance ) {
+		return function translateZ( distance ) {
 
 			return this.translateOnAxis( v1, distance );
 
@@ -291,7 +247,7 @@ THREE.Object3D.prototype = {
 
 		var m1 = new THREE.Matrix4();
 
-		return function ( vector ) {
+		return function worldToLocal( vector ) {
 
 			return vector.applyMatrix4( m1.getInverse( this.matrixWorld ) );
 
@@ -305,7 +261,7 @@ THREE.Object3D.prototype = {
 
 		var m1 = new THREE.Matrix4();
 
-		return function ( vector ) {
+		return function lookAt( vector ) {
 
 			m1.lookAt( vector, this.position, this.up );
 
@@ -385,13 +341,6 @@ THREE.Object3D.prototype = {
 
 	},
 
-	getChildByName: function ( name ) {
-
-		console.warn( 'THREE.Object3D: .getChildByName() has been renamed to .getObjectByName().' );
-		return this.getObjectByName( name );
-
-	},
-
 	getObjectById: function ( id ) {
 
 		return this.getObjectByProperty( 'id', id );
@@ -440,7 +389,7 @@ THREE.Object3D.prototype = {
 		var position = new THREE.Vector3();
 		var scale = new THREE.Vector3();
 
-		return function ( optionalTarget ) {
+		return function getWorldQuaternion( optionalTarget ) {
 
 			var result = optionalTarget || new THREE.Quaternion();
 
@@ -458,7 +407,7 @@ THREE.Object3D.prototype = {
 
 		var quaternion = new THREE.Quaternion();
 
-		return function ( optionalTarget ) {
+		return function getWorldRotation( optionalTarget ) {
 
 			var result = optionalTarget || new THREE.Euler();
 
@@ -475,7 +424,7 @@ THREE.Object3D.prototype = {
 		var position = new THREE.Vector3();
 		var quaternion = new THREE.Quaternion();
 
-		return function ( optionalTarget ) {
+		return function getWorldScale( optionalTarget ) {
 
 			var result = optionalTarget || new THREE.Vector3();
 
@@ -493,7 +442,7 @@ THREE.Object3D.prototype = {
 
 		var quaternion = new THREE.Quaternion();
 
-		return function ( optionalTarget ) {
+		return function getWorldDirection( optionalTarget ) {
 
 			var result = optionalTarget || new THREE.Vector3();
 
@@ -593,9 +542,10 @@ THREE.Object3D.prototype = {
 
 	toJSON: function ( meta ) {
 
-		var isRootObject = ( meta === undefined );
+		// meta is '' when called from JSON.stringify
+		var isRootObject = ( meta === undefined || meta === '' );
 
-		var data = {};
+		var output = {};
 
 		// meta is a hash used to collect geometries, materials.
 		// not providing it implies that this is the root object
@@ -610,7 +560,7 @@ THREE.Object3D.prototype = {
 				images: {}
 			};
 
-			data.metadata = {
+			output.metadata = {
 				version: 4.4,
 				type: 'Object',
 				generator: 'Object3D.toJSON'
@@ -620,28 +570,58 @@ THREE.Object3D.prototype = {
 
 		// standard Object3D serialization
 
-		data.uuid = this.uuid;
-		data.type = this.type;
+		var object = {};
 
-		if ( this.name !== '' ) data.name = this.name;
-		if ( JSON.stringify( this.userData ) !== '{}' ) data.userData = this.userData;
-		if ( this.visible !== true ) data.visible = this.visible;
+		object.uuid = this.uuid;
+		object.type = this.type;
 
-		data.matrix = this.matrix.toArray();
+		if ( this.name !== '' ) object.name = this.name;
+		if ( JSON.stringify( this.userData ) !== '{}' ) object.userData = this.userData;
+		if ( this.castShadow === true ) object.castShadow = true;
+		if ( this.receiveShadow === true ) object.receiveShadow = true;
+		if ( this.visible === false ) object.visible = false;
+
+		object.matrix = this.matrix.toArray();
+
+		//
+
+		if ( this.geometry !== undefined ) {
+
+			if ( meta.geometries[ this.geometry.uuid ] === undefined ) {
+
+				meta.geometries[ this.geometry.uuid ] = this.geometry.toJSON( meta );
+
+			}
+
+			object.geometry = this.geometry.uuid;
+
+		}
+
+		if ( this.material !== undefined ) {
+
+			if ( meta.materials[ this.material.uuid ] === undefined ) {
+
+				meta.materials[ this.material.uuid ] = this.material.toJSON( meta );
+
+			}
+
+			object.material = this.material.uuid;
+
+		}
+
+		//
 
 		if ( this.children.length > 0 ) {
 
-			data.children = [];
+			object.children = [];
 
 			for ( var i = 0; i < this.children.length; i ++ ) {
 
-				data.children.push( this.children[ i ].toJSON( meta ).object );
+				object.children.push( this.children[ i ].toJSON( meta ).object );
 
 			}
 
 		}
-
-		var output = {};
 
 		if ( isRootObject ) {
 
@@ -657,7 +637,7 @@ THREE.Object3D.prototype = {
 
 		}
 
-		output.object = data;
+		output.object = object;
 
 		return output;
 
@@ -698,8 +678,6 @@ THREE.Object3D.prototype = {
 		this.quaternion.copy( source.quaternion );
 		this.scale.copy( source.scale );
 
-		this.rotationAutoUpdate = source.rotationAutoUpdate;
-
 		this.matrix.copy( source.matrix );
 		this.matrixWorld.copy( source.matrixWorld );
 
@@ -731,8 +709,6 @@ THREE.Object3D.prototype = {
 
 	}
 
-};
-
-THREE.EventDispatcher.prototype.apply( THREE.Object3D.prototype );
+} );
 
 THREE.Object3DIdCount = 0;
