@@ -77,8 +77,7 @@
 			// SFM
 			var SFM_XYZ = [];
 			//			
-			var namelist, namelist_sel, nameIndex = 3;
-			
+			var namelist, namelist_sel, nameIndex = 49;			
 			init();
 			animate();	
 					
@@ -227,7 +226,8 @@
 						auto_center_street(panoSet[Object.keys(panoSet)[index]].lat, panoSet[Object.keys(panoSet)[index]].lon, index);							
 					}
 					else{	
-						parseGCP();
+						console.log(nameIndex, namelist_sel[nameIndex][0], namelist_sel[nameIndex][1])
+						//parseGCP();
 						reverseSFM();
 						//console.log(panoSet);					
 						/*$.each(actual_JSON, function(keyFrame, valFrame){	
