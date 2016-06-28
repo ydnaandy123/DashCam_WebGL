@@ -77,7 +77,7 @@
 			// SFM
 			var SFM_XYZ = [];
 			//			
-			var namelist, namelist_sel, nameIndex = 49;			
+			var namelist, namelist_sel, nameIndex = 3;			
 			init();
 			animate();	
 					
@@ -186,7 +186,7 @@
 					panoSet[Object.keys(panoSet)[index]].depthC = depth_container.children[index];
 					// Create Point Cloud
 					var geometry = new THREE.BufferGeometry();
-					//createPointCloud(geometry, this.depthMap, img_canvas_context);	
+					createPointCloud(geometry, this.depthMap, img_canvas_context);	
 						
 					//----- World objects Regeisterd in GLWorld -----		
 					street_view.rotation.y = -main_rotation * Math.PI / 180.0;	
@@ -207,7 +207,7 @@
 					geometry.applyMatrix(new THREE.Matrix4().makeRotationX( Math.PI/2 ));	
 					//---- TEMP ----//					
 					var pointcloud = new THREE.Points(geometry, point_cloud_material);
-					//union_street_view.add(pointcloud);											
+					union_street_view.add(pointcloud);											
 					
 					panoSet[Object.keys(panoSet)[index]].buffer_geometry = geometry;
 					// info_3d
@@ -227,7 +227,7 @@
 					}
 					else{	
 						console.log(nameIndex, namelist_sel[nameIndex][0], namelist_sel[nameIndex][1])
-						//parseGCP();
+						parseGCP();
 						reverseSFM();
 						//console.log(panoSet);					
 						/*$.each(actual_JSON, function(keyFrame, valFrame){	
@@ -565,7 +565,7 @@
 				$.each(GCP_rs, function(keyID, valID){
 					GCP_pos.push(valID);					
 				});	
-				var geometry = new THREE.SphereGeometry( 15, 10, 10 );
+				var geometry = new THREE.SphereGeometry( 1.5, 10, 10 );
 				var material = new THREE.MeshBasicMaterial( {color: 0x0000ff} );
 				for(var i=0; i<GCP_pos.length; i++){
 					var sphere = new THREE.Mesh( geometry, material );
@@ -591,6 +591,7 @@
 					valID.applyProjection(mat_offs);
 					SFM_LatLon[keyID] = XYZback2LatLon(valID.add(normal_offs))	
 				});	
+				console.log(SFM_LatLon)
 				//downloadSFM();
 			}
 			function parseJSON_rs(){

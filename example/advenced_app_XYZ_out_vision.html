@@ -72,22 +72,47 @@
 			var single_line = new THREE.Object3D(), root_group_line = new THREE.Object3D();
 			var	panoSet = {};
 			//
-			var namelist, nameIndex = 8;
+			var namelist, namelist_sel, nameIndex = 49;		
 			
 			init();
 			animate();	
 					
 			function init() {
 			
-				loadJSON_list();
-				loadJSON();			
-				THREE_scene_init();		
 				DAT_view();
+				loadJSON_list_sel();
+				loadJSON();				
+				THREE_scene_init();	
 							
 				//----- EVENT LISTENER -----
 				window.addEventListener( 'resize', onWindowResize, false );
 				document.addEventListener('mousedown', on_document_mouse_down, false);
 			}	
+			function loadJSON_list_sel(callback) {   
+				var xmlhttp;
+				if (window.XMLHttpRequest) {
+					xmlhttp = new XMLHttpRequest();
+				} 
+				else {
+					// code for IE6, IE5
+					xmlhttp = new ActiveXObject("Microsoft.XMLHTTP");
+				}					
+				//var url = "json/info_3d_hog_00002_new.json";
+				var url = "json/dashcam/namelist_50.json";
+				
+
+				xmlhttp.onreadystatechange = function() {
+					if (xmlhttp.readyState == 4 && xmlhttp.status == 200) {
+						namelist_sel = JSON.parse(xmlhttp.responseText);
+						for(var i=0; i<namelist_sel.length; i++){
+							namelist_sel[i] = namelist_sel[i].split(",");
+						}
+					}
+				};
+				// false = synchronize
+				xmlhttp.open("GET", url, false);
+				xmlhttp.send();
+			}			
 			function auto_center_street(lat, lon, index){				
 				//----- EACH SINGLE STREETVIEW -----				
 				var street_view = new THREE.Object3D();						
@@ -144,7 +169,7 @@
 					geometry.applyMatrix(new THREE.Matrix4().makeRotationX( Math.PI/2 ));	
 					//---- TEMP ----//
 					var pointcloud = new THREE.Points(geometry, point_cloud_material);
-					union_street_view.add(pointcloud);
+					//union_street_view.add(pointcloud);
 											
 					
 					panoSet[Object.keys(panoSet)[index]].buffer_geometry = geometry;					
@@ -176,7 +201,6 @@
 						f_confirm.add(guiView, "slPt", false).name("Select point");	
 						f_confirm.add(guiView, "slGroup", false).name("Select group");	
 						f_download.add(guiView, "dlPt").name("Download pt");
-						console.log(nameIndex, namelist[nameIndex])
 						downloadPt();
 					}				
 				}	
@@ -258,6 +282,7 @@
 				geometry.computeBoundingBox();		
 			}			
 			function downloadPt(){
+				console.log(nameIndex, namelist_sel[nameIndex][0], namelist_sel[nameIndex][1])
 				var hiddenElement = document.createElement('a');
 				console.log('start');				
 				var XYZdata = "text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(XYZobj));				
@@ -265,7 +290,7 @@
 				hiddenElement.href = 'data:' + XYZdata;				
 				hiddenElement.innerHTML = 'download JSON';
 				hiddenElement.target = '_blank';
-				hiddenElement.download = namelist[nameIndex] + '_pano_result.json';
+				hiddenElement.download = namelist_sel[nameIndex][1] + '_pano_result.json';
 				hiddenElement.click();
 				console.log('download');				
 			}
@@ -487,8 +512,8 @@
 					xmlhttp = new ActiveXObject("Microsoft.XMLHTTP");
 				}					
 				//var url = "json/info_3d_hog_00002_new.json";
-				var url = "json/dashcam/deep_match/"+ namelist[nameIndex] +"/info_3d.json";
-				console.log(nameIndex, namelist[nameIndex])
+				var url = "json/dashcam/dsift_match/"+ namelist_sel[nameIndex][1] +"/info_3d.json";				
+				console.log(nameIndex, namelist_sel[nameIndex][0], namelist_sel[nameIndex][1])
 				
 
 				xmlhttp.onreadystatechange = function() {
@@ -652,8 +677,7 @@
 				union_street_view.add(single_line);
 				union_street_view.add(root_group_line);
 				// world (x-z plane)
-				var gridXZ = new THREE.GridHelper(1000, 50);
-				gridXZ.setColors( new THREE.Color(0xff0000), new THREE.Color(0xffffff) );
+				var gridXZ = new THREE.GridHelper(1000, 50, new THREE.Color(0xff0000), new THREE.Color(0xffffff));
 				//scene.add(gridXZ);				
 			}			
 			function onWindowResize() {
