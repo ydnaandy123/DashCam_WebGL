@@ -84,7 +84,7 @@
 			var spheresIndex = 0;
 			var clock;
 			//			
-			var namelist, nameIndex = 4;
+			var namelist, nameIndex = 3;
 			
 			init();
 			animate();	
@@ -606,7 +606,7 @@
 						parseJSON_rs();
 					}
 				};
-				xmlhttp.open("GET", url, true);
+				xmlhttp.open("GET", url, false);
 				xmlhttp.send();
 			}			
 			function registeredInGLWorld(wT, street_view_heading){

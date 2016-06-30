@@ -223,7 +223,10 @@
 					// Sequence Download Pano
 					if(index+1<pathLen){
 						index++;
-						auto_center_street(panoSet[Object.keys(panoSet)[index]].lat, panoSet[Object.keys(panoSet)[index]].lon, index);							
+						auto_center_street(panoSet[Object.keys(panoSet)[index]].lat, panoSet[Object.keys(panoSet)[index]].lon, index);													
+						
+						//reverseSFM();
+						//console.log(nameIndex, namelist_sel[nameIndex][0], namelist_sel[nameIndex][1])
 					}
 					else{	
 						console.log(nameIndex, namelist_sel[nameIndex][0], namelist_sel[nameIndex][1])
@@ -582,8 +585,6 @@
 					sphere.updateMatrix();
 					scene.add( sphere );	
 				}
-				console.log(normal_offs, wT, mat_offs, sphere.position)			
-				//console.log(GCP_pos)
 			}
 			function reverseSFM(){
 				$.each(SFM_XYZ, function(keyID, valID){	
@@ -592,7 +593,7 @@
 					SFM_LatLon[keyID] = XYZback2LatLon(valID.add(normal_offs))	
 				});	
 				console.log(SFM_LatLon)
-				//downloadSFM();
+				downloadSFM();
 			}
 			function parseJSON_rs(){
 				// Transformation
@@ -655,7 +656,8 @@
 				}	
 				//var url = "json/result/PointCloud/" + rs_index_set[rs_index] + ".json";
 				// new Version
-				var url = "json/dashcam/deep_match/" + namelist_sel[nameIndex][1] + "/ransac_3D_result.json";
+				var url = "json/dashcam/deep_match/" + namelist_sel[nameIndex][1] + "/ransac_3D_result_old.json";
+				console.log('hi')
 				console.log(namelist_sel[nameIndex][0], namelist_sel[nameIndex][1])
 				
 				xmlhttp.onreadystatechange = function() {
