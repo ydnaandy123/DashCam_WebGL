@@ -84,10 +84,9 @@
 			function init() {
 								
 				DAT_view();
-				loadJSON_list();
 				loadJSON_list_sel();
 				loadJSON();		
-				loadJSON_rs();			
+				//loadJSON_rs();			
 				THREE_scene_init();	
 							
 				//----- EVENT LISTENER -----
@@ -102,28 +101,6 @@
 				lat = Math.atan(vec.y / r) / Math.PI * 180;		
 				return [lat, lng]
 			}			
-			function loadJSON_list(callback) {   
-				var xmlhttp;
-				if (window.XMLHttpRequest) {
-					xmlhttp = new XMLHttpRequest();
-				} 
-				else {
-					// code for IE6, IE5
-					xmlhttp = new ActiveXObject("Microsoft.XMLHTTP");
-				}					
-				//var url = "json/info_3d_hog_00002_new.json";
-				var url = "json/dashcam/namelist.json";
-				
-
-				xmlhttp.onreadystatechange = function() {
-					if (xmlhttp.readyState == 4 && xmlhttp.status == 200) {
-						namelist = JSON.parse(xmlhttp.responseText);
-					}
-				};
-				// false = synchronize
-				xmlhttp.open("GET", url, false);
-				xmlhttp.send();
-			}	
 			function loadJSON_list_sel(callback) {   
 				var xmlhttp;
 				if (window.XMLHttpRequest) {
@@ -170,6 +147,7 @@
 				pano_loader.load(new google.maps.LatLng(lat,lon));
 				pano_loader.onPanoramaLoad = function () {
 					// Get Panoramic
+					console.log(this.panoId);
 					pano_container.appendChild(this.canvas);	
 					panoSet[Object.keys(panoSet)[index]].panoC = this.canvas;
 					// Store PANO and HEADING, then call depth_loader
@@ -201,10 +179,14 @@
 					if(index==0){						
 						mat_offs = matrix.clone();
 						//parseGCP();
+						//console.log(new THREE.Matrix4().multiplyMatrices(new THREE.Matrix4().getInverse(mat_offs), new THREE.Matrix4().makeRotationX( Math.PI/2 )))
+						console.log(new THREE.Matrix4().multiplyMatrices(new THREE.Matrix4().makeRotationX( Math.PI/2 ), new THREE.Matrix4().getInverse(mat_offs)))
+						loadJSON_rs();			
 					}
 					//---- TEMP ----//
-					geometry.applyMatrix(new THREE.Matrix4().getInverse(mat_offs));	
-					geometry.applyMatrix(new THREE.Matrix4().makeRotationX( Math.PI/2 ));	
+					//geometry.applyMatrix(new THREE.Matrix4().getInverse(mat_offs));	
+					//geometry.applyMatrix(new THREE.Matrix4().makeRotationX( Math.PI/2 ));						
+					geometry.applyMatrix(new THREE.Matrix4().multiplyMatrices(new THREE.Matrix4().makeRotationX( Math.PI/2 ), new THREE.Matrix4().getInverse(mat_offs)));						
 					//---- TEMP ----//					
 					var pointcloud = new THREE.Points(geometry, point_cloud_material);
 					union_street_view.add(pointcloud);											
@@ -217,20 +199,20 @@
 					sphere.applyMatrix(matrix);
 					sphere.applyMatrix(new THREE.Matrix4().getInverse(mat_offs));	
 					sphere.applyMatrix(new THREE.Matrix4().makeRotationX( Math.PI/2 ));	
-					union_street_view.add(sphere);
+					//union_street_view.add(sphere);
 					
 					console.log(index, pathLen);					
 					// Sequence Download Pano
 					if(index+1<pathLen){
 						index++;
-						auto_center_street(panoSet[Object.keys(panoSet)[index]].lat, panoSet[Object.keys(panoSet)[index]].lon, index);													
+						//auto_center_street(panoSet[Object.keys(panoSet)[index]].lat, panoSet[Object.keys(panoSet)[index]].lon, index);													
 						
 						//reverseSFM();
 						//console.log(nameIndex, namelist_sel[nameIndex][0], namelist_sel[nameIndex][1])
 					}
 					else{	
 						console.log(nameIndex, namelist_sel[nameIndex][0], namelist_sel[nameIndex][1])
-						parseGCP();
+						//parseGCP();
 						reverseSFM();
 						//console.log(panoSet);					
 						/*$.each(actual_JSON, function(keyFrame, valFrame){	
@@ -593,17 +575,18 @@
 					SFM_LatLon[keyID] = XYZback2LatLon(valID.add(normal_offs))	
 				});	
 				console.log(SFM_LatLon)
-				downloadSFM();
+				//downloadSFM();
 			}
 			function parseJSON_rs(){
 				// Transformation
 				var transformation = actual_JSON_rs['transformation'];
 				transformation.push(0,0,0,1);
 				matrix_rs = new THREE.Matrix4().fromArray(transformation).transpose();
+				console.log(matrix_rs)
 				// GCP
 				//parseGCP();
 				// Trajectory
-				parseTrajectory();				
+				//parseTrajectory();				
 				// new Version
 				var points_rs = actual_JSON_rs['points'];
 				var id_rs = [], xyz_rs = [];
@@ -634,11 +617,24 @@
 					color_rs_2[3*n + 1] = 0;
 					color_rs_2[3*n + 2] = 0;
 				}				
-				//console.log(geometry);	
+					
 				geometry.addAttribute('position', new THREE.BufferAttribute(positions, 3));
-				geometry.addAttribute('color', new THREE.BufferAttribute(color_rs, 3));
-				
+				geometry.addAttribute('color', new THREE.BufferAttribute(color_rs, 3));				
 				geometry.applyMatrix(matrix_rs);
+				
+				
+				// For test, no use.
+				testV = new THREE.Vector3(-72.40474358, 17.013089, -0.4015005)
+				console.log(testV);
+				testV.applyMatrix4(matrix_rs);
+				console.log(testV);
+				A = new THREE.Matrix4().multiplyMatrices(mat_offs, new THREE.Matrix4().makeRotationX( -Math.PI/2 ))
+				console.log(testV.applyMatrix4(A));
+				console.log(XYZback2LatLon(testV));
+				console.log(XYZback2LatLon(testV.add(normal_offs)));
+				console.log(A, normal_offs)
+				// Test until here
+				
 				geometry.computeBoundingBox();	
 				//var pointcloud = new THREE.Points(geometry, point_cloud_material);
 				pointcloud_rs = new THREE.Points(geometry, point_cloud_material);
@@ -656,8 +652,7 @@
 				}	
 				//var url = "json/result/PointCloud/" + rs_index_set[rs_index] + ".json";
 				// new Version
-				var url = "json/dashcam/deep_match/" + namelist_sel[nameIndex][1] + "/ransac_3D_result_old.json";
-				console.log('hi')
+				var url = "json/dashcam/deep_match/" + namelist_sel[nameIndex][1] + "/ransac_3D_result.json";
 				console.log(namelist_sel[nameIndex][0], namelist_sel[nameIndex][1])
 				
 				xmlhttp.onreadystatechange = function() {
@@ -786,16 +781,16 @@
 				renderer = new THREE.WebGLRenderer({
 					antialias: true
 				});				
-				renderer.setClearColor( 0xffffff );
+				renderer.setClearColor( 0x000000 );
 				renderer.setSize(window.innerWidth, window.innerHeight);
 				// Container Created
 				var container = document.getElementById( 'container' );
 				container.appendChild( renderer.domElement );	
 				// Camera Setting				
 				camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 1, 10000);
-				camera.position.set(0, 50, 0);
+				camera.position.set(0, 300, 0);
 				camera.lookAt(0.0, 0.0, 0.0);
-				camera.up.set(0.0, 1.0, 0.0)
+				//camera.up.set(0.0, 1.0, 0.0)
 				// Lights	
 				light = new THREE.AmbientLight( 0xffffff );
 				scene.add( light );
@@ -881,6 +876,15 @@
 			}
 			function render() {
 			
+				//var timer = Date.now() * 0.001;
+
+				//camera.position.x = Math.cos( timer ) * 150;
+				//camera.position.z = Math.sin( timer ) * 150;
+			
+				//camera.position.x = Math.cos( timer ) * 150;
+				//camera.position.z = Math.sin( timer ) * 150;					
+				//camera.lookAt( scene.position );
+				
 				//interActiveRender();
 				renderer.render( scene, camera );
 			}			

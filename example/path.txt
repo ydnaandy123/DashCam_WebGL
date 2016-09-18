@@ -1,0 +1,15 @@
+recur(2)
+{
+    printf("%d\n",'d'+2);
+	recur(1)
+	{
+		printf("%d\n",'d'+1);
+		recur(0){
+			printf("%d\n",0);
+		}
+		printf("%d\n",'d'-1);
+	}
+    printf("%d\n",'d'-2);
+}
+
+https://www.facebook.com/news.ebc/videos/1191862597515496/?hc_ref=NEWSFEED

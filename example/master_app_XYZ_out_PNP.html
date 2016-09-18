@@ -19,7 +19,7 @@
 		<script src="../libs/mrdoob-three.js-5c6ec4a/examples/js/libs/stats.min.js"></script>
 		
 		
-		<script type="text/javascript" src="https://maps.googleapis.com/maps/api/js?v=3.exp&sensor=false"></script>
+		<script type="text/javascript" src="https://maps.googleapis.com/maps/api/js?v=3.exp&sensor=false&key=AIzaSyBcMOLC7w_R2AsIYJWZ3uXrGH6HMRoUOJY"></script>
 		
 		<script type="text/javascript" src="../libs/dat.gui.min.js"></script>		
 
@@ -72,7 +72,7 @@
 			var single_line = new THREE.Object3D(), root_group_line = new THREE.Object3D();
 			var	panoSet = {};
 			//
-			var namelist, namelist_sel, nameIndex = 19;		
+			var namelist, namelist_sel, nameIndex = 39;		
 			
 			init();
 			animate();	
@@ -173,7 +173,7 @@
 					geometry.applyMatrix(new THREE.Matrix4().makeRotationX( Math.PI/2 ));	
 					//---- TEMP ----//
 					var pointcloud = new THREE.Points(geometry, point_cloud_material);
-					union_street_view.add(pointcloud);
+					//union_street_view.add(pointcloud);
 											
 					
 					panoSet[Object.keys(panoSet)[index]].buffer_geometry = geometry;					
@@ -183,7 +183,7 @@
 					console.log(index, pathLen);
 					if(index+1<pathLen){
 						index++;
-						auto_center_street(panoSet[Object.keys(panoSet)[index]].lat, panoSet[Object.keys(panoSet)[index]].lon, index);	
+						//auto_center_street(panoSet[Object.keys(panoSet)[index]].lat, panoSet[Object.keys(panoSet)[index]].lon, index);	
 					}
 					else{	
 						console.log(panoSet);				
@@ -203,7 +203,6 @@
 						f_confirm.add(guiView, "slGroup", false).name("Select group");	
 						f_download.add(guiView, "dlPt").name("Download pt");
 						//console.log(nameIndex, namelist_sel[nameIndex])
-						//downloadPt();
 					}				
 				}	
 			}	
@@ -601,7 +600,7 @@
 					});	
 				});	
 				console.log(nameIndex, namelist_sel[nameIndex][0], namelist_sel[nameIndex][1])
-				//downloadPt();
+				downloadPt();
 			}
 			function load_trajectory(callback) {   
 				var xmlhttp;
@@ -613,7 +612,7 @@
 					xmlhttp = new ActiveXObject("Microsoft.XMLHTTP");
 				}					
 				//var url = "json/info_3d_hog_00002_new.json";
-				var url = "json/dashcam/pnp_match/"+ namelist_sel[nameIndex][1] +"/pnp_trajectory.json";
+				var url = "json/dashcam/pnp_match/"+ namelist_sel[nameIndex][1] +"/pnp_trajectory_new.json";
 
 				xmlhttp.onreadystatechange = function() {
 					if (xmlhttp.readyState == 4 && xmlhttp.status == 200) {

@@ -31,9 +31,6 @@
 		<script src="js/GSVPano_my2.js" type="text/javascript"></script>
 		<script src="js/GSVPanoDepth_my.js" type="text/javascript"></script>	
 		
-		<script src='../libs/threex.text-master/threex.text.js'></script>
-		<script src="../libs/threex.text-master/fonts/droid/droid_serif_bold.typeface.js"></script>
-		
 		
 		<script>				
 			
@@ -62,6 +59,7 @@
 			//APP
 			var	panoSet = {}, panoSet_metaOnly = {}, panoIdarr = [], len=0;
 			var maxDepth = 30, maxLength = 12;
+			var problem = 'Zm';
 			
 			init();
 			animate();	
@@ -74,8 +72,6 @@
 				//auto_center_street(25.05857458841691, 121.49816340877373, 0);
 				console.log(pathPoint[pathPoint.length/2  ], pathPoint[pathPoint.length/2 +1 ]);
 				auto_center_street(pathPoint[pathPoint.length/2  ], pathPoint[pathPoint.length/2 +1 ]);
-				//console.log(pathPoint[10], pathPoint[11]);
-				//auto_center_street(pathPoint[10], pathPoint[11], 0);
 			
 				//----- EVENT LISTENER -----
 				window.addEventListener( 'resize', onWindowResize, false );
@@ -95,9 +91,8 @@
 				pano_loader.onPanoramaLoad = function () {
 					panoIdarr.push(this.panoId);
 					// Here is the PROBLEM!!
-					console.log(this.data['$m'])
-					var lat_real = this.data['$m'][this.panoId].lat;
-					var lon_real = this.data['$m'][this.panoId].lng;
+					var lat_real = this.data[problem][this.panoId].lat;
+					var lon_real = this.data[problem][this.panoId].lng;
 					panoSet[this.panoId] = {lat:lat_real, lon:lon_real};						
 					// Get Panoramic
 					pano_container.appendChild(this.canvas);	
@@ -165,8 +160,8 @@
 				pano_loader.loadById(panoId);
 				pano_loader.onPanoramaLoad = function () {
 					// Here is the PROBLEM!!
-					var lat_real = this.data['$m'][panoId].lat;
-					var lon_real = this.data['$m'][panoId].lng;
+					var lat_real = this.data[problem][panoId].lat;
+					var lon_real = this.data[problem][panoId].lng;
 					panoSet[panoId] = {lat:lat_real, lon:lon_real};	
 					//panoSet_metaOnly[panoId] = {index: index, lat:lat_real, lon:lon_real};	
 					panoSet_metaOnly[index] = {panoId: panoId, lat:lat_real, lon:lon_real};	
@@ -275,12 +270,12 @@
 						helper_geometry_base.rotation.y = -data.links[i].heading * Math.PI / 180;
 						helper_geometry_base.add(helper_mesh);
 						
-						var mesh = new THREEx.Text(index)
+						/*var mesh = new THREEx.Text(index)
 						mesh.scale.multiplyScalar(2)
 						mesh.position.y	= +0.6
 						root_helper_object.add(mesh)
 	
-						root_helper_object.add(helper_geometry_base);
+						root_helper_object.add(helper_geometry_base);*/
 					}
 				}				
 			}	
@@ -424,7 +419,7 @@
 				renderer = new THREE.WebGLRenderer({
 					antialias: true
 				});				
-				renderer.setClearColor( 0xffffff );
+				renderer.setClearColor( 0x000000 );
 				renderer.setSize(window.innerWidth, window.innerHeight);
 				// Container Created
 				var container = document.getElementById( 'container' );
@@ -458,9 +453,8 @@
 				//scene.add(street_view_heading);
 				scene.add(union_street_view);
 				// world (x-z plane)
-				var gridXZ = new THREE.GridHelper(1000, 50);
-				gridXZ.setColors( new THREE.Color(0xff0000), new THREE.Color(0xffffff) );
-				scene.add(gridXZ);				
+				var gridXZ = new THREE.GridHelper(1000, 50, new THREE.Color(0xff0000), new THREE.Color(0xffffff));
+				//scene.add(gridXZ);				
 			}			
 			function onWindowResize() {
 				camera.aspect = window.innerWidth / window.innerHeight;

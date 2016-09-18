@@ -287,12 +287,12 @@
 						helper_geometry_base.rotation.y = -data.links[i].heading * Math.PI / 180;
 						helper_geometry_base.add(helper_mesh);
 						
-						var mesh = new THREEx.Text(index)
+						/*var mesh = new THREEx.Text(index)
 						mesh.scale.multiplyScalar(2)
 						mesh.position.y	= +0.6
 						root_helper_object.add(mesh)
 	
-						root_helper_object.add(helper_geometry_base);
+						root_helper_object.add(helper_geometry_base);*/
 					}
 				}				
 			}	
@@ -470,8 +470,7 @@
 				//scene.add(street_view_heading);
 				scene.add(union_street_view);
 				// world (x-z plane)
-				var gridXZ = new THREE.GridHelper(1000, 50);
-				gridXZ.setColors( new THREE.Color(0xff0000), new THREE.Color(0xffffff) );
+				var gridXZ = new THREE.GridHelper(1000, 50, new THREE.Color(0xff0000), new THREE.Color(0xffffff));				
 				scene.add(gridXZ);				
 			}			
 			function onWindowResize() {

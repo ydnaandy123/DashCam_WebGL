@@ -72,7 +72,7 @@
 			var single_line = new THREE.Object3D(), root_group_line = new THREE.Object3D();
 			var	panoSet = {};
 			//
-			var namelist, namelist_sel, nameIndex = 3;		
+			var namelist, namelist_sel, nameIndex = 39;		
 			
 			init();
 			animate();	
@@ -140,6 +140,7 @@
 					main_rotation = this.data.tiles.centerHeading;
 					panoSet[Object.keys(panoSet)[index]].rotation = -main_rotation * Math.PI / 180.0;
 					depth_loader.load(this.panoId);
+					console.log(this.panoId)
 				};				
 				//----- LOAD DEPTH -----
 				depth_loader.onDepthLoad = function () {
@@ -202,7 +203,7 @@
 						f_confirm.add(guiView, "slGroup", false).name("Select group");	
 						f_download.add(guiView, "dlPt").name("Download pt");
 						downloadPt();
-					}				
+					}			
 				}	
 			}	
 			function createLinks(root_helper_object, data, index){
@@ -580,7 +581,7 @@
 				}					
 				context.putImageData(image, 0, 0);
 				vdpeth_container = document.getElementById('depth_container');
-				depth_container.appendChild(canvas);				
+				depth_container.appendChild(canvas);			
 			}			
 			function DAT_view(){
 				//----- DAT GUI -----
@@ -642,7 +643,7 @@
 				renderer = new THREE.WebGLRenderer({
 					antialias: true
 				});				
-				renderer.setClearColor( 0xffffff );
+				renderer.setClearColor( 0x000000 );
 				renderer.setSize(window.innerWidth, window.innerHeight);
 				// Container Created
 				var container = document.getElementById( 'container' );

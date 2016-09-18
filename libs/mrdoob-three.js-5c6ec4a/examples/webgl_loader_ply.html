@@ -46,6 +46,7 @@
 
 		<script src="js/loaders/PLYLoader.js"></script>
 
+		<script src="js/controls/OrbitControls.js"></script>
 		<script src="js/Detector.js"></script>
 		<script src="js/libs/stats.min.js"></script>
 
@@ -56,6 +57,7 @@
 			var container, stats;
 
 			var camera, cameraTarget, scene, renderer;
+			var camera, controls, scene, renderer;
 
 			init();
 			animate();
@@ -65,13 +67,19 @@
 				container = document.createElement( 'div' );
 				document.body.appendChild( container );
 
-				camera = new THREE.PerspectiveCamera( 35, window.innerWidth / window.innerHeight, 1, 15 );
-				camera.position.set( 3, 0.15, 3 );
+				//camera = new THREE.PerspectiveCamera( 35, window.innerWidth / window.innerHeight, 1, 15 );
+				camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 1, 10000);
+				//camera.position.set( 3, 0.15, 3 );
 
-				cameraTarget = new THREE.Vector3( 0, -0.25, 0 );
-
+				//cameraTarget = new THREE.Vector3( 0, -0.25, 0 );
+				
+				
+				camera.position.set(0, 50, 50);
+				camera.lookAt(0.0, 0.0, 0.0);
+				camera.up.set(0.0, 1.0, 0.0)
+				
 				scene = new THREE.Scene();
-				scene.fog = new THREE.Fog( 0x72645b, 2, 15 );
+				//scene.fog = new THREE.Fog( 0x72645b, 2, 15 );
 
 
 				// Ground
@@ -82,7 +90,7 @@
 				);
 				plane.rotation.x = -Math.PI/2;
 				plane.position.y = -0.5;
-				scene.add( plane );
+				//scene.add( plane );
 
 				plane.receiveShadow = true;
 
@@ -90,8 +98,7 @@
 				// PLY file
 
 				var loader = new THREE.PLYLoader();
-				loader.load( './models/ply/ascii/dolphins.ply', function ( geometry ) {
-
+				/*loader.load( './models/ply/ascii/dolphins.ply', function ( geometry ) {
 					geometry.computeFaceNormals();
 
 					var material = new THREE.MeshStandardMaterial( { color: 0x0055ff } );
@@ -106,7 +113,29 @@
 
 					scene.add( mesh );
 
-				} );
+				} );*/
+				loader.load( './models/ply/binary/ptCloudScene.ply', function ( geometry ) {
+					//geometry.computeFaceNormals();
+					console.log(geometry)
+					point_cloud_material = new THREE.PointsMaterial({
+					size: 0.1,
+					vertexColors: true,
+					sizeAttenuation: true,
+					fog: true
+					});
+					//var material = new THREE.MeshStandardMaterial( { color: 0x0055ff } );
+					var pointcloud = new THREE.Points(geometry, point_cloud_material);
+
+					/*mesh.position.y = - 0.25;
+					mesh.rotation.x = - Math.PI / 2;
+					mesh.scale.multiplyScalar( 0.001 );
+
+					mesh.castShadow = true;
+					mesh.receiveShadow = true;*/
+
+					scene.add( pointcloud );
+
+				} );				
 
 				// Lights
 
@@ -118,7 +147,7 @@
 				// renderer
 
 				renderer = new THREE.WebGLRenderer( { antialias: true } );
-				renderer.setClearColor( scene.fog.color );
+				renderer.setClearColor( 0x000000 );
 				renderer.setPixelRatio( window.devicePixelRatio );
 				renderer.setSize( window.innerWidth, window.innerHeight );
 
@@ -130,6 +159,13 @@
 
 				container.appendChild( renderer.domElement );
 
+				
+				controls = new THREE.OrbitControls( camera, renderer.domElement );
+				//controls.addEventListener( 'change', render ); // add this only if there is no animation loop (requestAnimationFrame)
+				controls.enableDamping = true;
+				controls.dampingFactor = 0.25;
+				controls.enableZoom = true;
+				
 				// stats
 
 				stats = new Stats();
@@ -178,6 +214,7 @@
 
 				requestAnimationFrame( animate );
 
+				controls.update();
 				render();
 				stats.update();
 
@@ -187,10 +224,10 @@
 
 				var timer = Date.now() * 0.0005;
 
-				camera.position.x = Math.sin( timer ) * 3;
-				camera.position.z = Math.cos( timer ) * 3;
+				//camera.position.x = Math.sin( timer ) * 3;
+				//camera.position.z = Math.cos( timer ) * 3;
 
-				camera.lookAt( cameraTarget );
+				//camera.lookAt( cameraTarget );
 
 				renderer.render( scene, camera );
 

@@ -97,7 +97,7 @@ THREE.ConeBufferGeometry.prototype.constructor = THREE.ConeBufferGeometry;
 			var single_line = new THREE.Object3D(), root_group_line = new THREE.Object3D();
 			var	panoSet = {};
 			//
-			var namelist, nameIndex = 75;
+			var namelist, nameIndex = 101;
 			
 			init();
 			animate();	
@@ -107,7 +107,7 @@ THREE.ConeBufferGeometry.prototype.constructor = THREE.ConeBufferGeometry;
 				DAT_view();			
 				loadJSON_list();
 				loadJSON();		
-				load_trajectory();	
+				//load_trajectory();	
 				THREE_scene_init();					
 				//----- EVENT LISTENER -----
 				window.addEventListener( 'resize', onWindowResize, false );
@@ -165,7 +165,7 @@ THREE.ConeBufferGeometry.prototype.constructor = THREE.ConeBufferGeometry;
 					geometry.applyMatrix(matrix);	
 					if(index==0){						
 						mat_offs = matrix.clone();
-						parse_trajectory();
+						//parse_trajectory();
 					}
 					//---- TEMP ----//
 					geometry.applyMatrix(new THREE.Matrix4().getInverse(mat_offs));	
@@ -202,7 +202,7 @@ THREE.ConeBufferGeometry.prototype.constructor = THREE.ConeBufferGeometry;
 						f_confirm.add(guiView, "slGroup", false).name("Select group");	
 						f_download.add(guiView, "dlPt").name("Download pt");
 						console.log(nameIndex, namelist[nameIndex])
-						//downloadPt();
+						downloadPt();
 					}				
 				}	
 			}	
@@ -610,7 +610,7 @@ THREE.ConeBufferGeometry.prototype.constructor = THREE.ConeBufferGeometry;
 				xmlhttp.onreadystatechange = function() {
 					if (xmlhttp.readyState == 4 && xmlhttp.status == 200) {
 						pnp_trajectory = JSON.parse(xmlhttp.responseText);	
-						//parse_trajectory();
+						parse_trajectory();
 					}
 				};
 				xmlhttp.open("GET", url, false);

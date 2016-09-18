@@ -84,7 +84,7 @@
 			var spheresIndex = 0;
 			var clock;
 			//			
-			var namelist, nameIndex = 3;
+			var namelist, namelist_sel, nameIndex = 3;		
 			
 			init();
 			animate();	
@@ -92,7 +92,7 @@
 			function init() {
 								
 				DAT_view();
-				loadJSON_list();
+				loadJSON_list_sel();
 				loadJSON();		
 				loadJSON_rs();			
 				THREE_scene_init();	
@@ -102,7 +102,14 @@
 				document.addEventListener('mousedown', on_document_mouse_down, false);
 				document.addEventListener('mousemove', onDocumentMouseMove, false );
 			}	
-			function loadJSON_list(callback) {   
+			function XYZback2LatLon(vec){
+				lng = Math.atan(vec.x / vec.z) / Math.PI * 180;
+				if(vec.y > 0) lng += 180;					
+				r = new THREE.Vector3(vec.x, 0, vec.z).length();
+				lat = Math.atan(vec.y / r) / Math.PI * 180;		
+				return [lat, lng]
+			}			
+			function loadJSON_list_sel(callback) {   
 				var xmlhttp;
 				if (window.XMLHttpRequest) {
 					xmlhttp = new XMLHttpRequest();
@@ -111,13 +118,14 @@
 					// code for IE6, IE5
 					xmlhttp = new ActiveXObject("Microsoft.XMLHTTP");
 				}					
-				//var url = "json/info_3d_hog_00002_new.json";
-				var url = "json/dashcam/namelist.json";
-				
+				var url = "json/dashcam/namelist_50.json";				
 
 				xmlhttp.onreadystatechange = function() {
 					if (xmlhttp.readyState == 4 && xmlhttp.status == 200) {
-						namelist = JSON.parse(xmlhttp.responseText);
+						namelist_sel = JSON.parse(xmlhttp.responseText);
+						for(var i=0; i<namelist_sel.length; i++){
+							namelist_sel[i] = namelist_sel[i].split(",");
+						}
 					}
 				};
 				// false = synchronize
@@ -482,7 +490,7 @@
 					// code for IE6, IE5
 					xmlhttp = new ActiveXObject("Microsoft.XMLHTTP");
 				}	
-				var url = "json/dashcam/deep_match/"+ namelist[nameIndex] + "/info_3d.json";				
+				var url = "json/dashcam/deep_match/"+ namelist_sel[nameIndex][1] + "/info_3d.json";				
 
 				xmlhttp.onreadystatechange = function() {
 					if (xmlhttp.readyState == 4 && xmlhttp.status == 200) {
